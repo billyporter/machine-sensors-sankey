@@ -1,0 +1,150 @@
+* {
+    font-family: 'Roboto', 'Arial';
+}
+
+body {
+    background-color: #ecf0f1;
+    margin-right: 0;
+}
+
+.flex-container {
+    /* display: flex;
+    flex-direction: row; */
+}
+
+.select-graph {
+    position: absolute;
+    left: 1100px;
+    top: 100px;
+}
+
+.instructions {
+    margin-top: 50px;
+    margin-bottom: 50px;
+}
+
+.instructions div {
+    margin-top: 10px;
+}
+
+.labels-form {
+    margin-top: 50px;
+}
+
+.graphs-form {
+    margin-top: 50px;
+}
+
+.select-graph form div {
+    padding-top: 10px;
+}
+.select-graph form div input {
+    margin-right: 10px;
+}
+
+.graphic {
+    width: 300px;
+}
+
+.graphic svg {
+    /* display: block; */
+    /* margin-top: 50px; */
+    /* margin-left: auto; */
+    /* margin-right: auto; */
+}
+
+.link {
+    stroke-opacity: 0.4;
+}
+
+.link:hover {
+    cursor: pointer;
+    stroke-opacity: 0.8;
+}
+
+.button:hover {
+    cursor: pointer;
+}
+
+.nodes:hover {
+    cursor: pointer;
+}
+
+.select-graph {
+    width: 400px;
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 180px;
+    height: 66px;
+    padding: 2px;
+    font: 14px 'Roboto';
+    background: lightsteelblue;
+    border: 1px;
+    border-color: black;
+    border-style: solid;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+div.tooltipbig {
+    position: absolute;
+    text-align: center;
+    width: 180px;
+    height: 81px;
+    padding: 2px;
+    font: 14px 'Roboto';
+    background: lightsteelblue;
+    border: 1px;
+    border-color: black;
+    border-style: solid;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+div.tooltipwide {
+    position: absolute;
+    text-align: center;
+    width: 205px;
+    height: 66px;
+    padding: 2px;
+    font: 14px 'Roboto';
+    background: lightsteelblue;
+    border: 1px;
+    border-color: black;
+    border-style: solid;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+div.tooltipLink {
+    position: absolute;
+    text-align: center;
+    width: 180px;
+    height: 81px;
+    padding: 2px;
+    font: 14px 'Roboto';
+    background: #ffb5a6;
+    border: 1px;
+    border-color: black;
+    border-style: solid;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+div.tooltipLinkWide {
+    position: absolute;
+    text-align: center;
+    width: 320px;
+    height: 81px;
+    padding: 2px;
+    font: 14px 'Roboto';
+    background: #ffb5a6;
+    border: 1px;
+    border-color: black;
+    border-style: solid;
+    border-radius: 8px;
+    pointer-events: none;
+}

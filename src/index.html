@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Hierarchical Sankey Diagram</title>
+        <link href="styles.css" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body>
+        <div class="graphic">
+            <svg id="canvas"></svg>
+        </div>
+        <div class="select-graph">
+            <div class="graphs-form">
+                <span>Variants</span>
+            </div>
+            <form name="graphChoice">
+                <div>
+                    <label
+                        ><input
+                            type="radio"
+                            name="graph1"
+                            id="bd"
+                            value="bd"
+                            checked
+                        />Inflow: Vertical Separation</label
+                    >
+                </div>
+                <div>
+                    <label
+                        ><input
+                            type="radio"
+                            name="graph1"
+                            id="color"
+                            value="color"
+                        />Inflow: Color Distinction</label
+                    >
+                </div>
+                <div>
+                    <label
+                        ><input
+                            type="radio"
+                            name="graph1"
+                            id="tree"
+                            value="tree"
+                        />Level of Detail: Horizontal Split</label
+                    >
+                </div>
+                <div>
+                    <label
+                        ><input
+                            type="radio"
+                            name="graph1"
+                            id="hier"
+                            value="hier"
+                        />Level of Detail: Vertical Split</label
+                    >
+                </div>
+            </form>
+            <div class="labels-form">
+                <span>Labels</span>
+            </div>
+            <form name="labelChoice">
+                <div>
+                    <label
+                        ><input
+                            type="checkbox"
+                            name="label1"
+                            id="node"
+                            value="node"
+                        />Node Tooltip</label
+                    >
+                </div>
+                <div>
+                    <label
+                        ><input
+                            type="checkbox"
+                            name="label1"
+                            id="link"
+                            value="link"
+                        />Link Tooltip</label
+                    >
+                </div>
+            </form>
+            <div class="instructions">
+                <div>
+                    <span>Click on a node to split</span>
+                </div>
+                <div>
+                    <span>Right-click or shift+click on a node to merge</span>
+                </div>
+            </div>
+        </div>
+    </body>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+    <script src="https://d3js.org/d3-hsv.v0.1.min.js"></script>
+    <script src="https://unpkg.com/d3-array@1"></script>
+    <script src="https://unpkg.com/d3-collection@1"></script>
+    <script src="https://unpkg.com/d3-path@1"></script>
+    <script src="https://unpkg.com/d3-shape@1"></script>
+    <script src="https://unpkg.com/d3-sankey@0"></script>
+    <script src="js/data.js"></script>
+    <script src="js/breakdown-js.js"></script>
+    <script src="js/color-js.js"></script>
+    <script src="js/tree-js.js"></script>
+    <script src="js/hier-js.js"></script>
+    <script src="js/choose-graph.js"></script>
+</html>

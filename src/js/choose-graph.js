@@ -1,5 +1,6 @@
 // breakdownJS();
-treeJS();
+// treeJS();
+hierJS();
 var graphChoices = ["Breakdown", "Color", "Tree", "Hierarchy"];
 
 /* Select graph */

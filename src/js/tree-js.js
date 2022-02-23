@@ -125,6 +125,8 @@ function treeJS() {
             return "C";
         } else if (score >= 60) {
             return "D";
+        } else if (score >= 50) {
+            return "E";
         } else {
             return "F";
         }
@@ -264,9 +266,6 @@ function treeJS() {
                 const sourceExamIndex = assessTrim.indexOf(Object.keys(value)[0]);
                 const targetExamIndex = assessTrim.indexOf(Object.keys(value2)[0]);
                 const sourceLevel = assessGradeLevelMap[Object.keys(value)[0]][gradeScale(sourceGrade[0])]["level"];
-                console.log('----')
-                console.log(Object.values(value2))
-                console.log(gradeScale(targetGrade[0]));
                 const targetLevel = assessGradeLevelMap[Object.keys(value2)[0]][gradeScale(targetGrade[0])]["level"];
                 if (sourceLevel === 1) {
                     /* Check if base letter or specific */
@@ -349,10 +348,16 @@ function treeJS() {
     function createNodes(newIds) {
         nodes = []
         for (const [key, value] of Object.entries(newIds)) {
+            let name = Object.values(value)[0];
+            let assessment = Object.keys(value)[0];
+            let stringToInput = gradeCoordinateHelper(name, assessment, assessGradeLevelMap, true, true);
+            let nodeName = gradeCoordinatesMapFunction2(stringToInput);
             nodes.push({
                 "id": parseInt(key),
                 "name": Object.values(value)[0],
                 "assessment": Object.keys(value)[0],
+                'sensorName': nodeName,
+                "value": 0,
             });
         }
         return nodes
@@ -485,6 +490,7 @@ function treeJS() {
                     let target = output["grades"][assessments[index + 1].trim()][targetNodeName]["id"]; // next grade id
 
                     for (const [index, link] of output["links"].entries()) {
+                        // console.log(link["source"]);
                         if (JSON.stringify(link["source"]) == source && JSON.stringify(link["target"]) == target) {
                             output["links"][index]["value"]++;
                         }
@@ -914,7 +920,7 @@ function treeJS() {
                 .nodeWidth(nodeWdt)
                 .nodePadding(padding)
                 .nodeAlign(d3.sankeyCenter)
-                .nodeSort(null);
+                .nodeSort(sortSensorNodes);
 
         }
 
@@ -1270,6 +1276,9 @@ function treeJS() {
             .attr("y", function (d) { return (d.y1 + d.y0) / 2; })
             .attr("dy", "0.35em")
             .text(function (d) {
+                if (d.value == 0) {
+                    return "";
+                }
                 return gradeCoordinatesMapFunction1(d.name);
             });
 

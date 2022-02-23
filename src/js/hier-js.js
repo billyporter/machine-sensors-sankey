@@ -413,6 +413,46 @@ function hierJS() {
      * 
      */
 
+    function setDefaults() {
+        d3.selectAll(".link").each(function (d) {
+            // console.log(d);
+            d3.select(this).transition()
+                .style('stroke-opacity', 0.4);
+        });
+    }
+
+    /**
+     * When hovering over bar, highlights appropriate lines
+     */
+    function highlightGroup(group) {
+        group = group.split("\u2192");
+
+
+        // console.log(group);
+        d3.selectAll(".link").each(function (d) {
+
+            if (d.source.assessment == 'Exam 1' && (d.source.name != group[0] || d.target.name != group[1])) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.2);
+                return;
+            }
+            if (d.source.assessment == 'Exam 2' && (d.source.name != group[1] || d.target.name != group[2])) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.2);
+                return;
+            }
+            if (d.source.assessment == 'Exam 3' && (d.source.name != group[2] || d.target.name != group[3])) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.2);
+                return;
+            }
+
+
+            d3.select(this).transition()
+                .style('stroke-opacity', 0.8);
+        });
+    }
+
     /**
      * Function to remove legend
      */
@@ -440,9 +480,9 @@ function hierJS() {
         for (let group of rankedArray) {
             barData.push({ "Exam": group[0], "Students": group[1] });
             i += 1;
-            if (i == 8) {
-                break;
-            }
+            // if (i == 8) {
+            //     break;
+            // }
         }
         return barData;
     }
@@ -452,6 +492,7 @@ function hierJS() {
      */
     function buildAxisData(barData) {
         const axisData = [{ "Exam": "0" }];
+        // const axisData = [];
         for (let [i, exam] of barData.entries()) {
             axisData.push(exam);
             if (i < barData.length - 1) {
@@ -464,24 +505,55 @@ function hierJS() {
         return axisData;
     }
 
-    function buildLegend(colorArray, rankedArray, filteredData) {
+    function buildLegend(colorArray, rankedArray, nodeGrade, nodeExam) {
         console.log(rankedArray);
         const barData = buildBarGraphData(rankedArray, colorArray);
         const axisData = buildAxisData(barData);
-        const numBars = rankedArray.length < 8 ? rankedArray.length : 8;
+        // const numBars = rankedArray.length < 8 ? rankedArray.length : 8;
+        const numBars = rankedArray.length;
         const barHeight = 400;
-        const barPadding = 15;
-        const barWidth = 60;
+
+        // 300 barHeightMax
+        // after 6 bars, change padding and width
+        // 6 * 
+
+        // const barHeight = 300;
+        let barPadding = 15;
+        let barWidth = 60;
+
+        if (rankedArray.length > 6) {
+            barWidth = barWidth * 6 / rankedArray.length;
+            barPadding = barPadding * 6 / rankedArray.length;
+        }
+
         const startingX = 1000;
         const startingY = 335;
         const tickSize = 50;
         const graphWidth = 200;
-        console.log(rankedArray);
 
         /* builds y axis */
+        // var y = d3.scaleOrdinal()
+        //     .domain(Object.keys(axisData).map(x => axisData[x].Exam))
+        //     .range(Object.keys(axisData).map(x => x * 25));
+
+        // var y = d3.scaleOrdinal()
+        //     .domain(Object.keys(axisData).map(x => axisData[x].Exam))
+        //     .range(Object.keys(axisData).map(x => x * 25));
+
         var y = d3.scaleOrdinal()
             .domain(Object.keys(axisData).map(x => axisData[x].Exam))
-            .range(Object.keys(axisData).map(x => x * 25));
+            .range(Object.keys(axisData).map(x => {
+
+                /* Case where rankedArray <= 6 */
+                if (rankedArray.length <= 6) {
+                    return x * 25;
+                }
+
+                let newNum = Math.ceil((rankedArray.length * 3 / 2))
+                let amount = 400 / (newNum - 1) / 2;
+                return x * amount;
+            }));
+
 
         var yAxis = d3.axisLeft()
             .scale(y)
@@ -515,7 +587,6 @@ function hierJS() {
         // var x = d3.scaleLinear()
         //     .domain([0, Math.max(...Object.keys(barData).map(x => barData[x].Students))])
         //     .range([0, 2 * Math.max(...Object.keys(barData).map(x => barData[x].Students))]);
-        console.log(Math.max(...Object.keys(barData).map(x => barData[x].Students)));
         var x = d3.scaleLinear()
             .domain([0, Math.max(...Object.keys(barData).map(x => barData[x].Students))])
             .range([0, 2 * graphWidth]);
@@ -524,10 +595,9 @@ function hierJS() {
         var xAxis = d3.axisBottom()
             .scale(x)
             .ticks(x.domain()[1] / tickSize);
-
         svg.append("g")
             .attr("class", "legendXAxis")
-            .attr("transform", "translate(" + (startingX) + ", " + (startingY + 50 * numBars) + ")")
+            .attr("transform", "translate(" + (startingX) + ", " + (startingY + (y(axisData[axisData.length - 1]['Exam']))) + ")")
             .call(xAxis)
             .call(g => g.select('.domain')
                 .remove());
@@ -545,7 +615,7 @@ function hierJS() {
             .attr("x", 0)
             .attr("y", 0)
             .attr("class", "legendYAxisLabel")
-            .attr("transform", "translate(" + (startingX - 88 - pathwayPadding) + "," + (startingY - 20 + 30 * numBars) + ") rotate(-90)")
+            .attr("transform", "translate(" + (startingX - 88 - pathwayPadding) + "," + (startingY + y(axisData[axisData.length - 1]['Exam']) / 2) + ") rotate(-90)")
             .style("text-anchor", "middle")
             .style("font-weight", "600")
             .style("font-size", "14px")
@@ -579,15 +649,24 @@ function hierJS() {
             .style("font-size", "16px")
             .style("font-weight", "600")
             .text(function (d) {
-                title = "Grade ";
+                title = "Reading " + nodeGrade + " " + nodeExam;
                 return title;
             });
 
         /* Build domain for graph */
         domainY = []
-        for (let i = 0; i < 9; i++) {
+        let numMore = 9;
+        if (rankedArray.length > 6) {
+            numMore = rankedArray.length * 3 / 2;
+        }
+        for (let i = 0; i < numMore; i++) {
             domainY.push(i);
         }
+
+
+        // for (let i = 0; i < rankedArray.length; i++) {
+        //     domainY.push(i);
+        // }
 
         var bar_y = d3.scalePoint()
             .range([0, barHeight])
@@ -611,7 +690,7 @@ function hierJS() {
                 return colorArray[i];
             })
             .on('mouseover', function (d, i) {
-                highlightGroup(colorArray, filteredData, i['Exam']);
+                highlightGroup(i['Exam']);
                 d3.select(this).style('fill', "#ff79c6");
             })
             .on('mouseout', function (d, i) {
@@ -621,12 +700,19 @@ function hierJS() {
 
         /* Draw numeric labels to right of bar */
         const students = svg.selectAll(".label").data(barData);
+        let fontSize = 16;
+        if (rankedArray.length > 6) {
+            fontSize = 6 / rankedArray.length * fontSize;
+            if (fontSize < 10) {
+                fontSize = 10;
+            }
+        }
         students
             .enter()
             .append("text")
             .attr("class", "label")
             .attr("y", function (d, i) {
-                return bar_y(i) + startingY + 30;
+                return bar_y(i) + startingY + barWidth / 2;
             })
             .attr("x", function (d) {
                 return startingX + 25 + x(d.Students);
@@ -635,6 +721,7 @@ function hierJS() {
                 return d.Students;
             })
             .style("fill", "black")
+            .style("font-size", fontSize + "px");
     }
 
     function getGradeWithLevel(numberGrade, assessment) {
@@ -781,7 +868,7 @@ function hierJS() {
 
         pcData = filteredReturn[0];
         if (true) {
-            buildLegend(colorArray, sortedArray, filteredData);
+            buildLegend(colorArray, sortedArray, node.sensorName, node.assessment);
         }
         return;
     }
@@ -793,7 +880,8 @@ function hierJS() {
         const priority = ["#3c3c3c", "#525252", "#696969", "#8f8f8f", "#adadad", "#c7c7c7", "#d9d9d9", "#ededed"]; //nice
 
         for (let j = priority.length; j <= i; j++) {
-            priority.push("#44475a");
+            // priority.push("#44475a");
+            priority.push("#000000");
         }
 
         return priority

@@ -57,10 +57,10 @@ body {
     stroke-opacity: 0.4;
 }
 
-.link:hover {
+/* .link:hover {
     cursor: pointer;
     stroke-opacity: 0.8;
-}
+} */
 
 .button:hover {
     cursor: pointer;

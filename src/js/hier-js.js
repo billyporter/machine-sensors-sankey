@@ -288,6 +288,7 @@ function hierJS() {
                 "assessment": Object.keys(value)[0],
                 'sensorName': nodeName,
                 "value": 0,
+                "vale": 0,
             });
         }
         return nodes
@@ -360,7 +361,7 @@ function hierJS() {
                 output["grades"][assessment.trim()][grade]["count"]++;
                 let source = output["grades"][assessment.trim()][grade]["id"]; // prev grade id
                 if (index === 0) {
-                    output["nodes"][source]["value"]++;
+                    output["nodes"][source]["vale"]++;
                 }
 
                 if (index < 3) {
@@ -397,6 +398,9 @@ function hierJS() {
                 }
             }
         }
+        console.log(output);
+        output3 = JSON.parse(JSON.stringify(output));
+        console.log(output3);
         return output;
     }
 
@@ -431,17 +435,17 @@ function hierJS() {
         // console.log(group);
         d3.selectAll(".link").each(function (d) {
 
-            if (d.source.assessment == 'Exam 1' && (d.source.name != group[0] || d.target.name != group[1])) {
+            if (d.source.assessment == 'Exam 1' && (d.source.sensorName != group[0] || d.target.sensorName != group[1])) {
                 d3.select(this).transition()
                     .style('stroke-opacity', 0.2);
                 return;
             }
-            if (d.source.assessment == 'Exam 2' && (d.source.name != group[1] || d.target.name != group[2])) {
+            if (d.source.assessment == 'Exam 2' && (d.source.sensorName != group[1] || d.target.sensorName != group[2])) {
                 d3.select(this).transition()
                     .style('stroke-opacity', 0.2);
                 return;
             }
-            if (d.source.assessment == 'Exam 3' && (d.source.name != group[2] || d.target.name != group[3])) {
+            if (d.source.assessment == 'Exam 3' && (d.source.sensorName != group[2] || d.target.sensorName != group[3])) {
                 d3.select(this).transition()
                     .style('stroke-opacity', 0.2);
                 return;
@@ -728,21 +732,35 @@ function hierJS() {
         if (!numberGrade) {
             return ""
         }
+
         let grade = gradeScale(numberGrade);
         let level = assessGradeLevelMap[assessment][grade]["level"];
         if (level === 1) {
-            grade = specificLetterScale(grade, [assessment]);
+            grade = specificLetterScale(grade, numberGrade);
         }
         if (level === 2) {
-            grade = specificLetterScale(grade, [assessment]);
-            if (grade.length === 1 && assessGradeLevelMap[assessment][grade]["def"] === 2) {
-                grade = [assessment];
+            let otherGrade = specificLetterScale(grade, numberGrade);
+            if (assessment === 'Exam 3') {
+                console.log(otherGrade)
             }
-            else if (assessGradeLevelMap[assessment][grade[0]][grade[grade.length - 1]] === 2) {
-                grade = [assessment];
+            if (otherGrade.length > 1) {
+                level = assessGradeLevelMap[assessment][grade][otherGrade[1]];
+            }
+            else {
+                level = assessGradeLevelMap[assessment][grade]["def"];
+            }
+
+            // Check level
+            if (level == 2) {
+                grade = numberGrade;
+            }
+            else {
+                grade = otherGrade;
             }
         }
-        return grade;
+        let stringToInput = gradeCoordinateHelper(grade, assessment, assessGradeLevelMap);
+        let nodeName = gradeCoordinatesMapFunction(stringToInput);
+        return nodeName;
     }
 
     /**
@@ -757,13 +775,15 @@ function hierJS() {
     function formatParallelData(pcDataRaw) {
         result = [];
         Object.entries(pcDataRaw)
-            .map(x =>
+            .map(x => {
+                // console.log(x[1]);
                 result.push({
                     "Exam 1": getGradeWithLevel(x[1]["Exam 1"], "Exam 1"),
                     "Exam 2": getGradeWithLevel(x[1]["Exam 2"], "Exam 2"),
                     "Exam 3": getGradeWithLevel(x[1]["Exam 3"], "Exam 3"),
                     "Final Exam": getGradeWithLevel(x[1][" Final Exam"], " Final Exam")
                 })
+            }
             );
         return result;
     }
@@ -789,7 +809,10 @@ function hierJS() {
                     grade = student[1][nodeExam];
                 }
             }
-            if (grade === nodeGrade) {
+
+            let stringToInput = gradeCoordinateHelper(grade, nodeExam, assessGradeLevelMap);
+            let nodeName = gradeCoordinatesMapFunction(stringToInput);
+            if (nodeName === nodeGrade) {
                 pcDataRaw.push(student[1]);
             }
         }
@@ -855,7 +878,7 @@ function hierJS() {
     function hoverBehavior(node, flag) {
         console.log(node);
         // let billy = formatParallelData();
-        let pcDataRaw = filterParallelData(node.assessment, node.name);
+        let pcDataRaw = filterParallelData(node.assessment, node.sensorName);
         let pcData = formatParallelData(pcDataRaw);
         const filteredReturn = generateLegendGroups(pcData);
         const filteredData = filteredReturn[0];
@@ -877,7 +900,7 @@ function hierJS() {
     * Function to create color mapping based on size of input
     */
     function createColorMap(i) {
-        const priority = ["#3c3c3c", "#525252", "#696969", "#8f8f8f", "#adadad", "#c7c7c7", "#d9d9d9", "#ededed"]; //nice
+        const priority = ["#3c3c3c", "#525252", "#696969", "#8f8f8f", "#adadad", "#c7c7c7", "#d9d9d9", "#c7c7c7", "#adadad", "#8f8f8f", "#696969"]; //nice
 
         for (let j = priority.length; j <= i; j++) {
             // priority.push("#44475a");
@@ -1617,6 +1640,32 @@ function hierJS() {
                     .duration(500)
                     .style("opacity", 0);
             });
+
+        // resets on additional click
+        document.addEventListener("click", function (d, i) {
+            if (!d.shiftKey) {
+                clearPrevLegend();
+            }
+
+            // const target = event.target;
+            // if (!target.closest('.node')) {
+            //     isActive = false;
+            //     d3.selectAll(".lines")
+            //         .style("visibility", "hidden")
+            //     d3.selectAll(".link").style('pointer-events', 'auto');
+            //     d3.selectAll(".axes")
+            //         .style("visibility", "hidden");
+            //     clearPrevLegend();
+            //     d3.selectAll(".lines").style('pointer-events', 'none');
+            //     d3.selectAll(".link").style("opacity", 1);
+            //     d3.selectAll(".node").style("opacity", 1);
+
+            //     // lighten PC lines
+            //     deflineColor = "#90A4AE";
+            //     d3.selectAll(".lines").style("stroke", deflineColor);
+
+            // }
+        })
 
 
         /* Add in title */

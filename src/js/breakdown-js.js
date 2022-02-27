@@ -236,10 +236,15 @@ function breakdownJS() {
     function createNodes(newIds) {
         nodes = []
         for (const [key, value] of Object.entries(newIds)) {
+            // let name = Object.values(value)[0];
+            // let assessment = Object.keys(value)[0];
+            // let stringToInput = gradeCoordinateHelper(name, assessment, assessGradeLevelMap, true);
+            // let nodeName = gradeCoordinatesMapFunction(stringToInput);
             nodes.push({
                 "id": parseInt(key),
                 "name": Object.values(value)[0],
                 "assessment": Object.keys(value)[0],
+                "value": 0,
             });
         }
         return nodes
@@ -304,7 +309,13 @@ function breakdownJS() {
                     let previousGrade = gradeScale(student[1][assessments[index - 1]]);
                     sourceNodeName = grade + previousGrade;
                 }
+
+                // Increment for counting purposes
                 output["grades"][assessment.trim()][sourceNodeName]["count"]++;
+                let source = output["grades"][assessment.trim()][sourceNodeName]["id"]; // prev grade id
+                if (index === 0) {
+                    output["nodes"][source]["value"]++;
+                }
 
                 if (index < 3) {
                     let nextGrade = gradeScale(student[1][assessments[index + 1]]);
@@ -317,9 +328,11 @@ function breakdownJS() {
                         targetNodeName = nextGrade + grade;
                     }
 
-                    let source = output["grades"][assessment.trim()][sourceNodeName]["id"]; // prev grade id
-                    let target = output["grades"][assessments[index + 1].trim()]
-                    [targetNodeName]["id"]; // next grade id
+                    // let source = output["grades"][assessment.trim()][sourceNodeName]["id"]; // prev grade id
+                    let target = output["grades"][assessments[index + 1].trim()][targetNodeName]["id"]; // next grade id
+
+                    // Increment for counting purposes
+                    output["nodes"][target]["value"]++;
 
                     for (const [index, link] of output["links"].entries()) {
                         if (JSON.stringify(link["source"]) == source && JSON.stringify(link["target"]) == target) {
@@ -420,7 +433,7 @@ function breakdownJS() {
             .nodeWidth(nodeWdt)
             .nodePadding(padding)
             .nodeAlign(d3.sankeyCenter)
-            .nodeSort(null);
+            .nodeSort(inflowSensorSort);
     }
 
 
@@ -757,6 +770,7 @@ function breakdownJS() {
             oldGraph = sankey(oldData);
         }
         graph = sankey(sankeyData);
+        console.log(graph);
 
         /* If on load, add all points */
         if (isFirst) {
@@ -1000,6 +1014,9 @@ function breakdownJS() {
             .attr("dy", "0.35em")
             .text(function (d) {
                 // console.log(gradeCoordinatesMap.get(d.name[0]));
+                if (d.value == 0) {
+                    return "";
+                }
                 return gradeCoordinatesMap.get(d.name[0]);
             });
 

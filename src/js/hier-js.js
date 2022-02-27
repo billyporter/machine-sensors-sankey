@@ -14,10 +14,11 @@ function hierJS() {
     const height = 740 - margin.top - margin.bottom; //740;
     const legendWidth = 600;
     const legendHeight = 900;
+    const spaceForLegend = 200;
 
     /* Sets up svg */
     const svg = d3.select("#canvas")
-        .attr("width", width + margin.left + 50 + margin.right + 500)
+        .attr("width", width + margin.left + 50 + margin.right + 500 + spaceForLegend)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", "translate(50, 30)");
@@ -47,7 +48,7 @@ function hierJS() {
     const gradeCountDict = {};
     const sankeyColor = d3.scaleOrdinal()
         .domain(['A', 'B', 'C', 'D', 'F', "E"])
-        .range([d3.hsv(200, 0.8810, 0.8235), d3.hsv(138, 0.75, 0.64), d3.hsv(55, 0.75, 0.89), d3.hsv(38, 0.75, 0.9), d3.hsv(8, 0.75, 0.85), d3.hsv(20, 0.75, 0.9)]);
+        .range([d3.hsv(179, 1.0, 0.416), d3.hsv(27, 0.996, 0.937), d3.hsv(64, 0.748, 0.792), d3.hsv(0, 0.798, 0.776), d3.hsv(47, 0.749, 1), d3.hsv(328, .897, .533)]);
     const assessGradeLevelMap = {};
 
 
@@ -275,11 +276,19 @@ function hierJS() {
      */
     function createNodes(newIds) {
         nodes = []
+
         for (const [key, value] of Object.entries(newIds)) {
+            let name = Object.values(value)[0];
+            let assessment = Object.keys(value)[0];
+            let stringToInput = gradeCoordinateHelper(name, assessment, assessGradeLevelMap);
+            let nodeName = gradeCoordinatesMapFunction(stringToInput);
             nodes.push({
                 "id": parseInt(key),
                 "name": Object.values(value)[0],
                 "assessment": Object.keys(value)[0],
+                'sensorName': nodeName,
+                "value": 0,
+                "vale": 0,
             });
         }
         return nodes
@@ -350,6 +359,10 @@ function hierJS() {
                     }
                 }
                 output["grades"][assessment.trim()][grade]["count"]++;
+                let source = output["grades"][assessment.trim()][grade]["id"]; // prev grade id
+                if (index === 0) {
+                    output["nodes"][source]["vale"]++;
+                }
 
                 if (index < 3) {
                     let nextGrade = gradeScale(student[1][assessments[index + 1]]);
@@ -370,9 +383,12 @@ function hierJS() {
                             nextGrade = copyNextGrade;
                         }
                     }
-                    let source = output["grades"][assessment.trim()][grade]["id"]; // prev grade id
+                    // let source = output["grades"][assessment.trim()][grade]["id"]; // prev grade id
                     let target = output["grades"][assessments[index + 1].trim()]
                     [nextGrade]["id"]; // next grade id
+
+                    // Increment for counting purposes
+                    output["nodes"][target]["value"]++;
 
                     for (const [index, link] of output["links"].entries()) {
                         if (JSON.stringify(link["source"]) == source && JSON.stringify(link["target"]) == target) {
@@ -382,10 +398,517 @@ function hierJS() {
                 }
             }
         }
+        console.log(output);
+        output3 = JSON.parse(JSON.stringify(output));
+        console.log(output3);
         return output;
     }
 
 
+
+    /**
+     * 
+     * 
+     * 
+     * Legend
+     * Exploratory Section
+     * 
+     * 
+     * 
+     */
+
+    function setDefaults() {
+        d3.selectAll(".link").each(function (d) {
+            // console.log(d);
+            d3.select(this).transition()
+                .style('stroke-opacity', 0.4);
+        });
+    }
+
+    /**
+     * When hovering over bar, highlights appropriate lines
+     */
+    function highlightGroup(group) {
+        group = group.split("\u2192");
+
+
+        // console.log(group);
+        d3.selectAll(".link").each(function (d) {
+
+            if (d.source.assessment == 'Exam 1' && (d.source.sensorName != group[0] || d.target.sensorName != group[1])) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.2);
+                return;
+            }
+            if (d.source.assessment == 'Exam 2' && (d.source.sensorName != group[1] || d.target.sensorName != group[2])) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.2);
+                return;
+            }
+            if (d.source.assessment == 'Exam 3' && (d.source.sensorName != group[2] || d.target.sensorName != group[3])) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.2);
+                return;
+            }
+
+
+            d3.select(this).transition()
+                .style('stroke-opacity', 0.8);
+        });
+    }
+
+    /**
+     * Function to remove legend
+     */
+    function clearPrevLegend() {
+        d3.selectAll(".bar").remove();
+        d3.selectAll(".label").remove();
+        d3.selectAll(".exam").remove();
+        d3.selectAll(".legendYAxis").remove();
+        d3.selectAll(".legendXAxis").remove();
+        d3.selectAll(".legendTitle").remove();
+        d3.selectAll(".legendYAxisLabel").remove();
+        d3.selectAll(".legendXAxisLabel").remove();
+    }
+
+    /**
+     * Returns of Form:
+     * [ 
+     *      {Exam: examConcat, Students: "count"}
+     * ]
+     */
+    function buildBarGraphData(rankedArray, colorArray) {
+        clearPrevLegend();
+        barData = []
+        let i = 0;
+        for (let group of rankedArray) {
+            barData.push({ "Exam": group[0], "Students": group[1] });
+            i += 1;
+            // if (i == 8) {
+            //     break;
+            // }
+        }
+        return barData;
+    }
+
+    /**
+     * Returns dummy data inserted in the barGraph array to properly scale and style the y-axis 
+     */
+    function buildAxisData(barData) {
+        const axisData = [{ "Exam": "0" }];
+        // const axisData = [];
+        for (let [i, exam] of barData.entries()) {
+            axisData.push(exam);
+            if (i < barData.length - 1) {
+                axisData.push({ "Exam": "" + (1 + i) });
+            }
+        }
+
+        axisData.push({ "Exam": "dummy" });
+
+        return axisData;
+    }
+
+    function buildLegend(colorArray, rankedArray, nodeGrade, nodeExam) {
+        console.log(rankedArray);
+        const barData = buildBarGraphData(rankedArray, colorArray);
+        const axisData = buildAxisData(barData);
+        // const numBars = rankedArray.length < 8 ? rankedArray.length : 8;
+        const numBars = rankedArray.length;
+        const barHeight = 400;
+
+        // 300 barHeightMax
+        // after 6 bars, change padding and width
+        // 6 * 
+
+        // const barHeight = 300;
+        let barPadding = 15;
+        let barWidth = 60;
+
+        if (rankedArray.length > 6) {
+            barWidth = barWidth * 6 / rankedArray.length;
+            barPadding = barPadding * 6 / rankedArray.length;
+        }
+
+        const startingX = 1000;
+        const startingY = 335;
+        const tickSize = 50;
+        const graphWidth = 200;
+
+        /* builds y axis */
+        // var y = d3.scaleOrdinal()
+        //     .domain(Object.keys(axisData).map(x => axisData[x].Exam))
+        //     .range(Object.keys(axisData).map(x => x * 25));
+
+        // var y = d3.scaleOrdinal()
+        //     .domain(Object.keys(axisData).map(x => axisData[x].Exam))
+        //     .range(Object.keys(axisData).map(x => x * 25));
+
+        var y = d3.scaleOrdinal()
+            .domain(Object.keys(axisData).map(x => axisData[x].Exam))
+            .range(Object.keys(axisData).map(x => {
+
+                /* Case where rankedArray <= 6 */
+                if (rankedArray.length <= 6) {
+                    return x * 25;
+                }
+
+                let newNum = Math.ceil((rankedArray.length * 3 / 2))
+                let amount = 400 / (newNum - 1) / 2;
+                return x * amount;
+            }));
+
+
+        var yAxis = d3.axisLeft()
+            .scale(y)
+            .tickFormat(d => {
+                if (isNaN(d) && d.localeCompare("dummy") !== 0) {
+                    return d;
+                }
+            })
+            .tickSizeOuter(0); // remove axis brackets
+
+        svg.append("g")
+            .attr("class", "legendYAxis")
+            .attr("transform", "translate(" + (startingX - 10) + ", " + startingY + ")")
+            .call(yAxis)
+            .call(g => g.selectAll(".tick line")
+                .filter(d => {
+                    return d.localeCompare("dummy") === 0;
+                })
+                .attr("x2", barPadding + 2 * graphWidth) // extend the y=0 line to form a joined y and x axis
+            )
+            .call(g => g.selectAll(".tick")
+                .filter(function (d) {
+                    return !isNaN(d); // remove the dummy data (0, 1, 2, ...) to leave spaced out ticks in the middle of the data
+                })
+                .remove()
+            )
+            .style("font-size", "12px");
+
+
+        /* builds x axis */
+        // var x = d3.scaleLinear()
+        //     .domain([0, Math.max(...Object.keys(barData).map(x => barData[x].Students))])
+        //     .range([0, 2 * Math.max(...Object.keys(barData).map(x => barData[x].Students))]);
+        var x = d3.scaleLinear()
+            .domain([0, Math.max(...Object.keys(barData).map(x => barData[x].Students))])
+            .range([0, 2 * graphWidth]);
+
+
+        var xAxis = d3.axisBottom()
+            .scale(x)
+            .ticks(x.domain()[1] / tickSize);
+        svg.append("g")
+            .attr("class", "legendXAxis")
+            .attr("transform", "translate(" + (startingX) + ", " + (startingY + (y(axisData[axisData.length - 1]['Exam']))) + ")")
+            .call(xAxis)
+            .call(g => g.select('.domain')
+                .remove());
+        /* Get padding for pathway label */
+        let longestLength = 0;
+        for (const currLabel of rankedArray) {
+            if (currLabel[0].length > longestLength) {
+                longestLength = currLabel[0].length
+            }
+        }
+        let pathwayPadding = 3 * longestLength;
+
+        /* y axis label */
+        svg.append("text")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("class", "legendYAxisLabel")
+            .attr("transform", "translate(" + (startingX - 88 - pathwayPadding) + "," + (startingY + y(axisData[axisData.length - 1]['Exam']) / 2) + ") rotate(-90)")
+            .style("text-anchor", "middle")
+            .style("font-weight", "600")
+            .style("font-size", "14px")
+            .text("Pathway");
+
+        /* x axis label */
+        svg.append("text")
+            .attr("x", startingX + graphWidth)
+            .attr("y", startingY + 40 + 50 * numBars)
+            .attr("class", "legendXAxisLabel")
+            .style("text-anchor", "middle")
+            .style("font-weight", "600")
+            .style("font-size", "14px")
+            .text("Students");
+
+        /* title */
+        svg.append("text")
+            .attr("x", startingX + graphWidth)
+            .attr("y", startingY - 35)
+            .attr("class", "legendTitle")
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .style("font-weight", "600")
+            .text("Counts of Pathways Passing Through");
+
+        svg.append("text")
+            .attr("x", startingX + graphWidth)
+            .attr("y", startingY - 15)
+            .attr("class", "legendTitle")
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .style("font-weight", "600")
+            .text(function (d) {
+                title = "Reading " + nodeGrade + " " + nodeExam;
+                return title;
+            });
+
+        /* Build domain for graph */
+        domainY = []
+        let numMore = 9;
+        if (rankedArray.length > 6) {
+            numMore = rankedArray.length * 3 / 2;
+        }
+        for (let i = 0; i < numMore; i++) {
+            domainY.push(i);
+        }
+
+
+        // for (let i = 0; i < rankedArray.length; i++) {
+        //     domainY.push(i);
+        // }
+
+        var bar_y = d3.scalePoint()
+            .range([0, barHeight])
+            .domain(domainY);
+
+        /* Draw Bars */
+        const bars = svg.selectAll(".bar").data(barData);
+        bars
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("y", function (d, i) {
+                return bar_y(i) + startingY;
+            })
+            .attr("height", barWidth - barPadding)
+            .attr("x", startingX)
+            .attr("width", function (d) {
+                return x(d.Students);
+            })
+            .style('fill', function (d, i) {
+                return colorArray[i];
+            })
+            .on('mouseover', function (d, i) {
+                highlightGroup(i['Exam']);
+                d3.select(this).style('fill', "#ff79c6");
+            })
+            .on('mouseout', function (d, i) {
+                setDefaults();
+                d3.select(this).style('fill', colorArray[groupsList.indexOf(i.Exam)]);
+            })
+
+        /* Draw numeric labels to right of bar */
+        const students = svg.selectAll(".label").data(barData);
+        let fontSize = 16;
+        if (rankedArray.length > 6) {
+            fontSize = 6 / rankedArray.length * fontSize;
+            if (fontSize < 10) {
+                fontSize = 10;
+            }
+        }
+        students
+            .enter()
+            .append("text")
+            .attr("class", "label")
+            .attr("y", function (d, i) {
+                return bar_y(i) + startingY + barWidth / 2;
+            })
+            .attr("x", function (d) {
+                return startingX + 25 + x(d.Students);
+            })
+            .text(function (d) {
+                return d.Students;
+            })
+            .style("fill", "black")
+            .style("font-size", fontSize + "px");
+    }
+
+    function getGradeWithLevel(numberGrade, assessment) {
+        if (!numberGrade) {
+            return ""
+        }
+
+        let grade = gradeScale(numberGrade);
+        let level = assessGradeLevelMap[assessment][grade]["level"];
+        if (level === 1) {
+            grade = specificLetterScale(grade, numberGrade);
+        }
+        if (level === 2) {
+            let otherGrade = specificLetterScale(grade, numberGrade);
+            if (assessment === 'Exam 3') {
+                console.log(otherGrade)
+            }
+            if (otherGrade.length > 1) {
+                level = assessGradeLevelMap[assessment][grade][otherGrade[1]];
+            }
+            else {
+                level = assessGradeLevelMap[assessment][grade]["def"];
+            }
+
+            // Check level
+            if (level == 2) {
+                grade = numberGrade;
+            }
+            else {
+                grade = otherGrade;
+            }
+        }
+        let stringToInput = gradeCoordinateHelper(grade, assessment, assessGradeLevelMap);
+        let nodeName = gradeCoordinatesMapFunction(stringToInput);
+        return nodeName;
+    }
+
+    /**
+     * Returns an object of the following form:
+    * [
+    *      { "id": id, "Exam 1": exam1_score, "Exam 2", exam2_score, 
+    *      "Exam 3", exam3_score, "Final Exam": finalExam_score
+    *       },
+    *      ...,
+    * ]
+    */
+    function formatParallelData(pcDataRaw) {
+        result = [];
+        Object.entries(pcDataRaw)
+            .map(x => {
+                // console.log(x[1]);
+                result.push({
+                    "Exam 1": getGradeWithLevel(x[1]["Exam 1"], "Exam 1"),
+                    "Exam 2": getGradeWithLevel(x[1]["Exam 2"], "Exam 2"),
+                    "Exam 3": getGradeWithLevel(x[1]["Exam 3"], "Exam 3"),
+                    "Final Exam": getGradeWithLevel(x[1][" Final Exam"], " Final Exam")
+                })
+            }
+            );
+        return result;
+    }
+
+
+    function filterParallelData(nodeExam, nodeGrade) {
+        let pcDataRaw = []
+        for (const student of Object.entries(rawData)) {
+            if (!student[1][nodeExam]) {
+                continue;
+            }
+            let grade = gradeScale(student[1][nodeExam]);
+            let level = assessGradeLevelMap[nodeExam][grade]["level"];
+            if (level === 1) {
+                grade = specificLetterScale(grade, student[1][nodeExam]);
+            }
+            if (level === 2) {
+                grade = specificLetterScale(grade, student[1][nodeExam]);
+                if (grade.length === 1 && assessGradeLevelMap[nodeExam][grade]["def"] === 2) {
+                    grade = student[1][nodeExam];
+                }
+                else if (assessGradeLevelMap[nodeExam][grade[0]][grade[grade.length - 1]] === 2) {
+                    grade = student[1][nodeExam];
+                }
+            }
+
+            let stringToInput = gradeCoordinateHelper(grade, nodeExam, assessGradeLevelMap);
+            let nodeName = gradeCoordinatesMapFunction(stringToInput);
+            if (nodeName === nodeGrade) {
+                pcDataRaw.push(student[1]);
+            }
+        }
+        return pcDataRaw;
+    }
+
+    function generateLegendGroups(pcData) {
+        /* Get groups and their sizes */
+        let groupsMap = new Map();
+        groupsList = [];
+        for (let line of pcData) {
+            // console.log('------');
+            let allExams = ''
+            allExams += line[assessments[0]];
+            for (let assessment of assessments.slice(1)) {
+                if (line[assessment.trim()]) {
+                    allExams += "\u2192";
+                    allExams += line[assessment.trim()];
+                }
+                else {
+                    // this break may be a bad idea if somehow theres a reading later on
+                    break
+                }
+            }
+            line['concat'] = allExams;
+            if (allExams === "A→A→A→A→A") {
+                console.log('here');
+            }
+            if (groupsMap.has(allExams)) {
+                groupsMap.set(allExams, groupsMap.get(allExams) + 1);
+            }
+            else {
+                groupsMap.set(allExams, 1);
+            }
+        }
+        groupsList = [...groupsMap.keys()];
+
+        /* Rank the groups */
+        let rankedArray = [];
+        for (let group of groupsMap) {
+            rankedArray.push(group);
+        }
+        let sortedArray = rankedArray.sort((a, b) => {
+            return (a[1] < b[1]) ? 1 : -1;
+        })
+
+        /* Put rank and group into Map */
+        let rankedMap = new Map();
+        let i = 0
+        for (let [group] of sortedArray) {
+            rankedMap.set(group, i)
+            i += 1
+        }
+
+        /* Add in color field to data */
+        for (let line of [pcData]) {
+            line['group'] = rankedMap.get(line['concat']);
+        }
+
+        return [pcData, i, sortedArray];
+    }
+
+    function hoverBehavior(node, flag) {
+        console.log(node);
+        // let billy = formatParallelData();
+        let pcDataRaw = filterParallelData(node.assessment, node.sensorName);
+        let pcData = formatParallelData(pcDataRaw);
+        const filteredReturn = generateLegendGroups(pcData);
+        const filteredData = filteredReturn[0];
+        const totalGroups = filteredReturn[1];
+        const sortedArray = filteredReturn[2];
+
+        /* Build colors */
+        const colorArray = createColorMap(totalGroups);
+
+
+        pcData = filteredReturn[0];
+        if (true) {
+            buildLegend(colorArray, sortedArray, node.sensorName, node.assessment);
+        }
+        return;
+    }
+
+    /**
+    * Function to create color mapping based on size of input
+    */
+    function createColorMap(i) {
+        const priority = ["#3c3c3c", "#525252", "#696969", "#8f8f8f", "#adadad", "#c7c7c7", "#d9d9d9", "#c7c7c7", "#adadad", "#8f8f8f", "#696969"]; //nice
+
+        for (let j = priority.length; j <= i; j++) {
+            // priority.push("#44475a");
+            priority.push("#000000");
+        }
+
+        return priority
+    }
 
     /**
      * 
@@ -503,6 +1026,9 @@ function hierJS() {
         for (const node of graph.nodes) {
             if (!(node.assessment in newGraphPoints)) {
                 newGraphPoints[node.assessment] = {}
+            }
+            if (node.y0 == node.y1 && node.value > 0) {
+                node.y1 = node.y0 + 0.65;
             }
             newGraphPoints[node.assessment][node.name] =
             {
@@ -791,7 +1317,7 @@ function hierJS() {
             .nodeWidth(nodeWdt)
             .nodePadding(padding)
             .nodeAlign(d3.sankeyCenter)
-            .nodeSort(null);
+            .nodeSort(sortSensorNodes);
     }
     /*************************************
      * 
@@ -885,6 +1411,7 @@ function hierJS() {
                 }
                 node.y0 = visualNode.y0;
                 node.y1 = visualNode.y1;
+                // console.log(node);
             }
             /* Set link value to old graph point to begin animation */
             for (const link of graph.links) {
@@ -1038,10 +1565,15 @@ function hierJS() {
             })
             .attr("stroke", (d) => {
                 return d3.rgb(getNodeColor(d.name)).darker(0.6);
+                // return "#000000"
+            })
+            .attr("stroke-width", (d) => {
+                return 1;
             })
             .on("click", function (d, i) {
                 if (d.shiftKey) {
-                    hierarchSankeyRouter(i, false);
+                    // hierarchSankeyRouter(i, false);
+                    hoverBehavior(i, true);
                 }
                 else {
                     hierarchSankeyRouter(i, true);
@@ -1109,6 +1641,32 @@ function hierJS() {
                     .style("opacity", 0);
             });
 
+        // resets on additional click
+        document.addEventListener("click", function (d, i) {
+            if (!d.shiftKey) {
+                clearPrevLegend();
+            }
+
+            // const target = event.target;
+            // if (!target.closest('.node')) {
+            //     isActive = false;
+            //     d3.selectAll(".lines")
+            //         .style("visibility", "hidden")
+            //     d3.selectAll(".link").style('pointer-events', 'auto');
+            //     d3.selectAll(".axes")
+            //         .style("visibility", "hidden");
+            //     clearPrevLegend();
+            //     d3.selectAll(".lines").style('pointer-events', 'none');
+            //     d3.selectAll(".link").style("opacity", 1);
+            //     d3.selectAll(".node").style("opacity", 1);
+
+            //     // lighten PC lines
+            //     deflineColor = "#90A4AE";
+            //     d3.selectAll(".lines").style("stroke", deflineColor);
+
+            // }
+        })
+
 
         /* Add in title */
         // graphnode.append("title")
@@ -1123,28 +1681,10 @@ function hierJS() {
             .attr("y", function (d) { return (d.y1 + d.y0) / 2; })
             .attr("dy", "0.35em")
             .text(function (d) {
-                console.log('----')
-                console.log(d.name);
-                console.log(gradeCoordinatesMapFunction(d.name));
-                console.log(d);
-                if (letrs.has(d.name)) {
-                    let stringToInput = d.assessment;
-                    if (d['assessment'].localeCompare('Final Exam') === 0) {
-                        stringToInput = ' '.concat(d.assessment);
-                        console.log('here')
-                    }
-                    console.log(stringToInput);
-                    currLevel = assessGradeLevelMap[stringToInput][d.name]["level"];
-                    if (currLevel > 0) {
-                        return gradeCoordinatesMapFunction(d.name + "def");
-                    }
-                    else {
-                        return gradeCoordinatesMapFunction(d.name);
-                    }
+                if (d.value == 0) {
+                    return "";
                 }
-                else {
-                    return gradeCoordinatesMapFunction(d.name);
-                }
+                return d.sensorName;
             });
 
     }
@@ -1343,8 +1883,10 @@ function hierJS() {
                     if (newPointsNotInOldSet.has([node.assessment, node.name, node.value].toString())) {
                         const searchNode = oldPointsNotInNewSet.keys().next().value.split(',');
                         return d3.rgb(getNodeColor(searchNode[1])).darker(0.6);
+                        // return "#000000"
                     }
                     return d3.rgb(getNodeColor(node.name)).darker(0.6);
+                    // return "#000000"
                 })
         });
 
@@ -1368,6 +1910,7 @@ function hierJS() {
                 })
                 .style("stroke", function (d) {
                     return d3.rgb(getNodeColor(d.name)).darker(0.6);
+                    // return "#000000"
                 })
         });
         d3.selectAll('.nodeText').each(function (d) {
@@ -1456,8 +1999,10 @@ function hierJS() {
                     if (oldPointsNotInNewSet.has([node.assessment, node.name, node.value].toString())) {
                         const searchNode = newPointsNotInOldSet.keys().next().value.split(',');
                         return d3.rgb(getNodeColor(searchNode[1])).darker(0.6);
+                        // return "#000000"
                     }
                     return d3.rgb(getNodeColor(node.name)).darker(0.6);
+                    // return "#000000"
                 });
         });
 

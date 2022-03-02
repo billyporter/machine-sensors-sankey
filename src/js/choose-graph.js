@@ -25,12 +25,12 @@ document.graphChoice[3].addEventListener('change', function () {
 });
 
 /* Select label toggle */
-var showNodeLabels = false;
-var showLinkLabels = false;
-document.labelChoice[0].addEventListener('change', function () {
-    showNodeLabels = !showNodeLabels;
-});
+// var showNodeLabels = false;
+// var showLinkLabels = false;
+// document.labelChoice[0].addEventListener('change', function () {
+//     showNodeLabels = !showNodeLabels;
+// });
 
-document.labelChoice[1].addEventListener('change', function () {
-    showLinkLabels = !showLinkLabels;
-});
+// document.labelChoice[1].addEventListener('change', function () {
+//     showLinkLabels = !showLinkLabels;
+// });

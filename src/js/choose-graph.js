@@ -11,15 +11,10 @@ document.graphChoice[0].addEventListener('change', function () {
 
 document.graphChoice[1].addEventListener('change', function () {
     d3.selectAll("svg > *").remove();
-    colorJS();
-});
-
-document.graphChoice[2].addEventListener('change', function () {
-    d3.selectAll("svg > *").remove();
     treeJS();
 });
 
-document.graphChoice[3].addEventListener('change', function () {
+document.graphChoice[2].addEventListener('change', function () {
     d3.selectAll("svg > *").remove();
     hierJS();
 });

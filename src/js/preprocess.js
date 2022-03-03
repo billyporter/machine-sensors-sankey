@@ -189,6 +189,7 @@ let gradeCoordinatesMap2 = new Map([
     ['F-', 'Kz'],
 ]);
 
+
 function gradeCoordinateHelper(name, assessment, gradeMap, flag, treeFlag) {
     const allLetters = new Set(["A", "B", "C", "D", "F", "E"]);
     if (allLetters.has(name)) {

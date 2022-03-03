@@ -50,7 +50,7 @@ function breakdownJS() {
     const gradeCountDict = {};
     const sankeyColor = d3.scaleOrdinal()
         .domain(['A', 'B', 'C', 'D', 'F', 'E'])
-        .range([d3.hsv(200, 0.8810, 0.8235), d3.hsv(138, 0.75, 0.64), d3.hsv(55, 0.75, 0.89), d3.hsv(38, 0.75, 0.9), d3.hsv(8, 0.75, 0.85), d3.hsv(20, 0.75, 0.9)]);
+        .range([d3.hsv(179, 1.0, 0.416), d3.hsv(27, 0.996, 0.937), d3.hsv(64, 0.748, 0.792), d3.hsv(0, 0.798, 0.776), d3.hsv(47, 0.749, 1), d3.hsv(328, .897, .533)]);
     const assessGradeLevelMap = {};
 
     /* converts from hex color code to rgb color code struct */
@@ -236,15 +236,18 @@ function breakdownJS() {
     function createNodes(newIds) {
         nodes = []
         for (const [key, value] of Object.entries(newIds)) {
-            // let name = Object.values(value)[0];
-            // let assessment = Object.keys(value)[0];
-            // let stringToInput = gradeCoordinateHelper(name, assessment, assessGradeLevelMap, true);
-            // let nodeName = gradeCoordinatesMapFunction(stringToInput);
+            let sensorName = gradeCoordinatesMap.get(Object.values(value)[0][0]);
+            if (Object.values(value)[0].length === 2) {
+                sensorName += gradeCoordinatesMap.get(Object.values(value)[0][1]);
+            }
+
             nodes.push({
                 "id": parseInt(key),
                 "name": Object.values(value)[0],
                 "assessment": Object.keys(value)[0],
+                'sensorName': sensorName,
                 "value": 0,
+                "vale": 0,
             });
         }
         return nodes
@@ -314,7 +317,7 @@ function breakdownJS() {
                 output["grades"][assessment.trim()][sourceNodeName]["count"]++;
                 let source = output["grades"][assessment.trim()][sourceNodeName]["id"]; // prev grade id
                 if (index === 0) {
-                    output["nodes"][source]["value"]++;
+                    output["nodes"][source]["vale"]++;
                 }
 
                 if (index < 3) {
@@ -345,7 +348,500 @@ function breakdownJS() {
         return output;
     }
 
+    /**
+     * 
+     * 
+     * 
+     * Legend
+     * Exploratory Section
+     * 
+     * 
+     * 
+     */
 
+    function setDefaults() {
+        d3.selectAll(".link").each(function (d) {
+            // console.log(d);
+            d3.select(this).transition()
+                .style('stroke-opacity', 0.4);
+        });
+    }
+
+    /**
+     * When hovering over bar, highlights appropriate lines
+     */
+    function highlightGroup(group) {
+        group = group.split("\u2192");
+        console.log(group);
+
+        // console.log(group);
+        d3.selectAll(".link").each(function (d) {
+
+            if (d.source.assessment == 'Exam 1' && (d.source.sensorName != group[0] || d.target.sensorName != group[1])) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.2);
+                return;
+            }
+            if (d.source.assessment == 'Exam 2' && (d.source.sensorName != group[1] || d.target.sensorName != group[2])) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.2);
+                return;
+            }
+            if (d.source.assessment == 'Exam 3' && (d.source.sensorName != group[2] || d.target.sensorName != group[3])) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.2);
+                return;
+            }
+
+
+            d3.select(this).transition()
+                .style('stroke-opacity', 0.8);
+        });
+    }
+
+    /**
+     * Function to remove legend
+     */
+    function clearPrevLegend() {
+        d3.selectAll(".bar").remove();
+        d3.selectAll(".label").remove();
+        d3.selectAll(".exam").remove();
+        d3.selectAll(".legendYAxis").remove();
+        d3.selectAll(".legendXAxis").remove();
+        d3.selectAll(".legendTitle").remove();
+        d3.selectAll(".legendYAxisLabel").remove();
+        d3.selectAll(".legendXAxisLabel").remove();
+    }
+
+    /**
+     * Returns of Form:
+     * [ 
+     *      {Exam: examConcat, Students: "count"}
+     * ]
+     */
+    function buildBarGraphData(rankedArray, colorArray) {
+        clearPrevLegend();
+        barData = []
+        let i = 0;
+        for (let group of rankedArray) {
+            barData.push({ "Exam": group[0], "Students": group[1] });
+            i += 1;
+            // if (i == 8) {
+            //     break;
+            // }
+        }
+        return barData;
+    }
+
+    /**
+     * Returns dummy data inserted in the barGraph array to properly scale and style the y-axis 
+     */
+    function buildAxisData(barData) {
+        const axisData = [{ "Exam": "0" }];
+        // const axisData = [];
+        for (let [i, exam] of barData.entries()) {
+            axisData.push(exam);
+            if (i < barData.length - 1) {
+                axisData.push({ "Exam": "" + (1 + i) });
+            }
+        }
+
+        axisData.push({ "Exam": "dummy" });
+
+        return axisData;
+    }
+
+    function buildLegend(colorArray, rankedArray, nodeGrade, nodeExam) {
+        const barData = buildBarGraphData(rankedArray, colorArray);
+        const axisData = buildAxisData(barData);
+        // const numBars = rankedArray.length < 8 ? rankedArray.length : 8;
+        const numBars = rankedArray.length;
+        const barHeight = 400;
+
+        // 300 barHeightMax
+        // after 6 bars, change padding and width
+        // 6 * 
+
+        // const barHeight = 300;
+        let barPadding = 15;
+        let barWidth = 60;
+
+        if (rankedArray.length > 6) {
+            barWidth = barWidth * 6 / rankedArray.length;
+            barPadding = barPadding * 6 / rankedArray.length;
+        }
+
+        const startingX = 1000;
+        const startingY = 335;
+        const tickSize = 50;
+        const graphWidth = 200;
+
+        /* builds y axis */
+        // var y = d3.scaleOrdinal()
+        //     .domain(Object.keys(axisData).map(x => axisData[x].Exam))
+        //     .range(Object.keys(axisData).map(x => x * 25));
+
+        // var y = d3.scaleOrdinal()
+        //     .domain(Object.keys(axisData).map(x => axisData[x].Exam))
+        //     .range(Object.keys(axisData).map(x => x * 25));
+
+        var y = d3.scaleOrdinal()
+            .domain(Object.keys(axisData).map(x => axisData[x].Exam))
+            .range(Object.keys(axisData).map(x => {
+
+                /* Case where rankedArray <= 6 */
+                if (rankedArray.length <= 6) {
+                    return x * 25;
+                }
+
+                let newNum = Math.ceil((rankedArray.length * 3 / 2))
+                let amount = 400 / (newNum - 1) / 2;
+                return x * amount;
+            }));
+
+
+        var yAxis = d3.axisLeft()
+            .scale(y)
+            .tickFormat(d => {
+                if (isNaN(d) && d.localeCompare("dummy") !== 0) {
+                    return d;
+                }
+            })
+            .tickSizeOuter(0); // remove axis brackets
+
+        svg.append("g")
+            .attr("class", "legendYAxis")
+            .attr("transform", "translate(" + (startingX - 10) + ", " + startingY + ")")
+            .call(yAxis)
+            .call(g => g.selectAll(".tick line")
+                .filter(d => {
+                    return d.localeCompare("dummy") === 0;
+                })
+                .attr("x2", barPadding + 2 * graphWidth) // extend the y=0 line to form a joined y and x axis
+            )
+            .call(g => g.selectAll(".tick")
+                .filter(function (d) {
+                    return !isNaN(d); // remove the dummy data (0, 1, 2, ...) to leave spaced out ticks in the middle of the data
+                })
+                .remove()
+            )
+            .style("font-size", "12px");
+
+
+        /* builds x axis */
+        // var x = d3.scaleLinear()
+        //     .domain([0, Math.max(...Object.keys(barData).map(x => barData[x].Students))])
+        //     .range([0, 2 * Math.max(...Object.keys(barData).map(x => barData[x].Students))]);
+        var x = d3.scaleLinear()
+            .domain([0, Math.max(...Object.keys(barData).map(x => barData[x].Students))])
+            .range([0, 2 * graphWidth]);
+
+
+        var xAxis = d3.axisBottom()
+            .scale(x)
+            .ticks(x.domain()[1] / tickSize);
+        svg.append("g")
+            .attr("class", "legendXAxis")
+            .attr("transform", "translate(" + (startingX) + ", " + (startingY + (y(axisData[axisData.length - 1]['Exam']))) + ")")
+            .call(xAxis)
+            .call(g => g.select('.domain')
+                .remove());
+        /* Get padding for pathway label */
+        let longestLength = 0;
+        for (const currLabel of rankedArray) {
+            if (currLabel[0].length > longestLength) {
+                longestLength = currLabel[0].length
+            }
+        }
+        let pathwayPadding = 3 * longestLength;
+
+        /* y axis label */
+        svg.append("text")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("class", "legendYAxisLabel")
+            .attr("transform", "translate(" + (startingX - 88 - pathwayPadding) + "," + (startingY + y(axisData[axisData.length - 1]['Exam']) / 2) + ") rotate(-90)")
+            .style("text-anchor", "middle")
+            .style("font-weight", "600")
+            .style("font-size", "14px")
+            .text("Pathway");
+
+        /* x axis label */
+        svg.append("text")
+            .attr("x", startingX + graphWidth)
+            .attr("y", startingY + 40 + 50 * numBars)
+            .attr("class", "legendXAxisLabel")
+            .style("text-anchor", "middle")
+            .style("font-weight", "600")
+            .style("font-size", "14px")
+            .text("Students");
+
+        /* title */
+        svg.append("text")
+            .attr("x", startingX + graphWidth)
+            .attr("y", startingY - 35)
+            .attr("class", "legendTitle")
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .style("font-weight", "600")
+            .text("Counts of Pathways Passing Through");
+
+        svg.append("text")
+            .attr("x", startingX + graphWidth)
+            .attr("y", startingY - 15)
+            .attr("class", "legendTitle")
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .style("font-weight", "600")
+            .text(function (d) {
+                let tempTitle = nodeExam
+                if (nodeExam == "Final Exam") {
+                    tempTitle = "Alert 4";
+                }
+                else {
+                    tempTitle = nodeExam.replace(/Exam/g, "Alert");
+                }
+
+                title = "Sensor Reading " + nodeGrade + " on " + tempTitle;
+                return title;
+            });
+
+        /* Build domain for graph */
+        domainY = []
+        let numMore = 9;
+        if (rankedArray.length > 6) {
+            numMore = rankedArray.length * 3 / 2;
+        }
+        for (let i = 0; i < numMore; i++) {
+            domainY.push(i);
+        }
+
+
+        // for (let i = 0; i < rankedArray.length; i++) {
+        //     domainY.push(i);
+        // }
+
+        var bar_y = d3.scalePoint()
+            .range([0, barHeight])
+            .domain(domainY);
+
+        /* Draw Bars */
+        const bars = svg.selectAll(".bar").data(barData);
+        bars
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("y", function (d, i) {
+                return bar_y(i) + startingY;
+            })
+            .attr("height", barWidth - barPadding)
+            .attr("x", startingX)
+            .attr("width", function (d) {
+                return x(d.Students);
+            })
+            .style('fill', function (d, i) {
+                return colorArray[i];
+            })
+            .on('mouseover', function (d, i) {
+                highlightGroup(i['Exam']);
+                d3.select(this).style('fill', "#ff79c6");
+            })
+            .on('mouseout', function (d, i) {
+                setDefaults();
+                d3.select(this).style('fill', colorArray[groupsList.indexOf(i.Exam)]);
+            })
+
+        /* Draw numeric labels to right of bar */
+        const students = svg.selectAll(".label").data(barData);
+        let fontSize = 16;
+        if (rankedArray.length > 6) {
+            fontSize = 6 / rankedArray.length * fontSize;
+            if (fontSize < 10) {
+                fontSize = 10;
+            }
+        }
+        students
+            .enter()
+            .append("text")
+            .attr("class", "label")
+            .attr("y", function (d, i) {
+                return bar_y(i) + startingY + barWidth / 2;
+            })
+            .attr("x", function (d) {
+                return startingX + 25 + x(d.Students);
+            })
+            .text(function (d) {
+                return d.Students;
+            })
+            .style("fill", "black")
+            .style("font-size", fontSize + "px");
+    }
+
+    /**
+     * Returns an object of the following form:
+    * [
+    *      { "id": id, "Exam 1": exam1_score, "Exam 2", exam2_score, 
+    *      "Exam 3", exam3_score, "Final Exam": finalExam_score
+    *       },
+    *      ...,
+    * ]
+    */
+    function formatParallelData(pcDataRaw) {
+        result = [];
+        Object.entries(pcDataRaw)
+            .map(x => {
+                // console.log(x[1]);
+                let studentLine = { "Exam 1": "", "Exam 2": "", "Exam 3": "", "Final Exam": "" };
+                for ([index, assessment] of assessments.entries()) {
+                    // let studentGrade = gradeCoordinatesMap.get(gradeScale(x[1][assessment])[0]);
+                    let studentGrade = gradeScale(x[1][assessment])[0];
+                    let currLevel = assessGradeLevelMap[assessment.trim()][studentGrade];;
+                    studentGrade = gradeCoordinatesMap.get(gradeScale(x[1][assessment])[0]);
+                    if (currLevel === 1) {
+                        if (index !== 0) {
+                            const previousExam = assessments[index - 1]
+                            if (!x[1][previousExam]) {
+                                continue;
+                            }
+                            const previousGrade = gradeCoordinatesMap.get(gradeScale(x[1][previousExam]));
+                            // const previousGrade = gradeScale(x[1][previousExam]);
+                            studentGrade += previousGrade;
+                        }
+                    }
+                    studentLine[assessment.trim()] = studentGrade;
+                }
+
+                result.push(studentLine);
+            }
+            );
+        return result;
+    }
+
+
+    function filterParallelData(nodeExam, nodeGrade) {
+        let pcDataRaw = []
+        let examToInput = nodeExam;
+        if (examToInput === "Final Exam") {
+            examToInput = ' '.concat(examToInput);;
+        }
+        for (const student of Object.entries(rawData)) {
+            if (!student[1][examToInput]) {
+                continue;
+            }
+            let grade = gradeScale(student[1][examToInput]);
+            const currLevel = assessGradeLevelMap[examToInput.trim()][grade];;
+            if (currLevel === 1) {
+                // get previous grade
+                const examIndex = assessments.indexOf(examToInput);
+                if (examIndex === 0) {
+                    continue;
+                }
+                const previousExam = assessments[examIndex - 1]
+                if (!student[1][previousExam]) {
+                    continue;
+                }
+                const previousGrade = gradeScale(student[1][previousExam]);
+                grade = grade + previousGrade;
+            }
+
+            if (grade === nodeGrade) {
+                pcDataRaw.push(student[1]);
+            }
+        }
+        return pcDataRaw;
+    }
+
+    function generateLegendGroups(pcData) {
+        /* Get groups and their sizes */
+        let groupsMap = new Map();
+        groupsList = [];
+        for (let line of pcData) {
+            // console.log('------');
+            let allExams = ''
+            allExams += line[assessments[0]];
+            for (let assessment of assessments.slice(1)) {
+                if (line[assessment.trim()]) {
+                    allExams += "\u2192";
+                    allExams += line[assessment.trim()];
+                }
+                else {
+                    // this break may be a bad idea if somehow theres a reading later on
+                    break
+                }
+            }
+            line['concat'] = allExams;
+            if (allExams === "A→A→A→A→A") {
+                console.log('here');
+            }
+            if (groupsMap.has(allExams)) {
+                groupsMap.set(allExams, groupsMap.get(allExams) + 1);
+            }
+            else {
+                groupsMap.set(allExams, 1);
+            }
+        }
+        groupsList = [...groupsMap.keys()];
+
+        /* Rank the groups */
+        let rankedArray = [];
+        for (let group of groupsMap) {
+            rankedArray.push(group);
+        }
+        let sortedArray = rankedArray.sort((a, b) => {
+            return (a[1] < b[1]) ? 1 : -1;
+        })
+
+        /* Put rank and group into Map */
+        let rankedMap = new Map();
+        let i = 0
+        for (let [group] of sortedArray) {
+            rankedMap.set(group, i)
+            i += 1
+        }
+
+        /* Add in color field to data */
+        for (let line of [pcData]) {
+            line['group'] = rankedMap.get(line['concat']);
+        }
+
+        return [pcData, i, sortedArray];
+    }
+
+    function hoverBehavior(node, flag) {
+        // let billy = formatParallelData();
+        let pcDataRaw = filterParallelData(node.assessment, node.name);
+        let pcData = formatParallelData(pcDataRaw);
+        const filteredReturn = generateLegendGroups(pcData);
+        const filteredData = filteredReturn[0];
+        const totalGroups = filteredReturn[1];
+        const sortedArray = filteredReturn[2];
+
+        /* Build colors */
+        const colorArray = createColorMap(totalGroups);
+
+        console.log(sortedArray);
+        console.log(node.sensorName);
+        console.log(node)
+        pcData = filteredReturn[0];
+        if (true) {
+            buildLegend(colorArray, sortedArray, node.sensorName, node.assessment);
+        }
+        return;
+    }
+
+    /**
+    * Function to create color mapping based on size of input
+    */
+    function createColorMap(i) {
+        const priority = ["#3c3c3c", "#525252", "#696969", "#8f8f8f", "#adadad", "#c7c7c7", "#d9d9d9", "#c7c7c7", "#adadad", "#8f8f8f", "#696969"]; //nice
+
+        for (let j = priority.length; j <= i; j++) {
+            // priority.push("#44475a");
+            priority.push("#000000");
+        }
+
+        return priority
+    }
 
     /**
      * 
@@ -770,7 +1266,6 @@ function breakdownJS() {
             oldGraph = sankey(oldData);
         }
         graph = sankey(sankeyData);
-        console.log(graph);
 
         /* If on load, add all points */
         if (isFirst) {
@@ -935,7 +1430,8 @@ function breakdownJS() {
             })
             .on("click", function (d, i) {
                 if (d.shiftKey) {
-                    hierarchSankeyRouter(i, false);
+                    // hierarchSankeyRouter(i, false);
+                    hoverBehavior(i, true);
                 }
                 else {
                     hierarchSankeyRouter(i, true);
@@ -944,66 +1440,13 @@ function breakdownJS() {
             .on("contextmenu", function (d, i) {
                 d.preventDefault();
                 hierarchSankeyRouter(i, false);
-            })
-            .on("mouseover", function (d, i) {
-                if (!showNodeLabels) {
-                    return;
-                }
-                if (d3.selectAll('.tooltip')._groups[0].length > 1) {
-                    d3.selectAll('.tooltip').each(function (d) {
-                        d3.select(this).transition()
-                            .duration(500)
-                            .style('opacity', 0)
-                            .remove();
-                    });
-                }
-
-                if (d3.selectAll('.tooltipwide')._groups[0].length > 1) {
-                    d3.selectAll('.tooltipwide').each(function (d) {
-                        d3.select(this).transition()
-                            .duration(500)
-                            .style('opacity', 0)
-                            .remove();
-                    });
-                }
-
-                const percent = getAllStudents(i.assessment, i.value);
-                const childPercent = getParentPercentage(i.assessment, i.name, i.value);
-
-                let nodeNameString = i.name[0];
-                if (i.name.length > 1) {
-                    const extraString = ` (${assessments[assessmentsNoSpace.indexOf(i.assessment) - 1]} ${i.name[1]})`;
-                    nodeNameString += extraString;
-                }
-                isNormal = true;
-                if (i.assessment === 'Final Exam') {
-                    divwide.transition()
-                        .duration(400)
-                        .style("opacity", 1.0);
-                    divwide.html(`Node: ${i.assessment} ${nodeNameString} </br>${i.value} students </br> ${childPercent} of parent node </br> ${percent} of all students `)
-                        .style("left", (d.pageX) + "px")
-                        .style("top", (d.pageY - 28) + "px");
-                }
-                else {
-                    div.transition()
-                        .duration(400)
-                        .style("opacity", 1.0);
-                    div.html(`Node: ${i.assessment} ${nodeNameString} </br>${i.value} students </br> ${childPercent} of parent node </br> ${percent} of all students `)
-                        .style("left", (d.pageX) + "px")
-                        .style("top", (d.pageY - 28) + "px");
-                }
-            })
-            .on("mouseout", function (d) {
-                if (!showNodeLabels) {
-                    return;
-                }
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-                divwide.transition()
-                    .duration(500)
-                    .style("opacity", 0);
             });
+
+        document.addEventListener("click", function (d, i) {
+            if (!d.shiftKey) {
+                clearPrevLegend();
+            }
+        });
 
         /* Add in text */
         graphnode.append("text")
@@ -1119,54 +1562,6 @@ function breakdownJS() {
             .style("stroke-width", d => d.width)
             .style("stroke", d => {
                 return sankeyColor(d.source.name[0]);
-            })
-            .on("mouseover", function (d, i) {
-                if (!showLinkLabels) {
-                    return;
-                }
-                if (d3.selectAll('.tooltipLinkWide')._groups[0].length > 1) {
-                    d3.selectAll('.tooltipLinkWide').each(function (d) {
-                        d3.select(this).transition()
-                            .duration(500)
-                            .style('opacity', 0)
-                            .remove();
-                    });
-                }
-                const percent = getAllStudents(i.target.assessment, i.value);
-                const childPercentArray = getParentPercentage(i.source.id, i.source.name, i.target.id, i.target.name);
-                const htmlString = buildString(childPercentArray, i.value, i.source.assessment, i.target.assessment);
-
-                if (i.source.name.length > 1 || i.target.name.length > 1) {
-                    divwide.transition()
-                        .duration(500)
-                        // .ease(d3.easeCircle)
-                        .style("opacity", 1.0);
-                    divwide.html(`Link: ${i.source.name[0]} to ${i.target.name[0]} </br> ${i.value} students </br> ${htmlString} ${percent} of all students `)
-                        .style("left", (d.pageX) + "px")
-                        .style("top", (d.pageY - 28) + "px");
-                }
-                else {
-                    div.transition()
-                        .duration(500)
-                        // .ease(d3.easeCircle)
-                        .style("opacity", 1.0);
-                    div.html(`Link: ${i.source.name[0]} to ${i.target.name[0]} </br> ${i.value} students </br> ${htmlString} ${percent} of all students `)
-                        .style("left", (d.pageX) + "px")
-                        .style("top", (d.pageY - 28) + "px");
-
-                }
-
-            })
-            .on("mouseout", function (d) {
-                if (!showLinkLabels) {
-                    return;
-                }
-                div.transition()
-                    .duration(400)
-                    .style("opacity", 0);
-                divwide.transition()
-                    .duration(400)
-                    .style("opacity", 0);
             });
     }
 
@@ -1432,28 +1827,28 @@ function breakdownJS() {
             .attr("y", height + 25)
             .attr("x", examGraphLabel[0])
             .style("text-anchor", "middle")
-            .text("Exam 1");
+            .text("Alert 1");
 
         svg.append("text")
             .attr("class", "axis-label")
             .attr("y", height + 25)
             .attr("x", examGraphLabel[1])
             .style("text-anchor", "middle")
-            .text("Exam 2");
+            .text("Alert 2");
 
         svg.append("text")
             .attr("class", "axis-label")
             .attr("y", height + 25)
             .attr("x", examGraphLabel[2])
             .style("text-anchor", "middle")
-            .text("Exam 3");
+            .text("Alert 3");
 
         svg.append("text")
             .attr("class", "axis-label")
             .attr("y", height + 25)
             .attr("x", examGraphLabel[3])
             .style("text-anchor", "middle")
-            .text("Final Exam");
+            .text("Alert 4");
     }
 
 

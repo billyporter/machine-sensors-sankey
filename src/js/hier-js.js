@@ -643,7 +643,7 @@ function hierJS() {
             .attr("text-anchor", "middle")
             .style("font-size", "16px")
             .style("font-weight", "600")
-            .text("Counts of Pathways Passing Through");
+            .text("Counts of Pathways through");
 
         svg.append("text")
             .attr("x", startingX + graphWidth)
@@ -653,7 +653,15 @@ function hierJS() {
             .style("font-size", "16px")
             .style("font-weight", "600")
             .text(function (d) {
-                title = "Reading " + nodeGrade + " " + nodeExam;
+                let tempTitle = nodeExam
+                if (nodeExam == "Final Exam") {
+                    tempTitle = "Alert 4";
+                }
+                else {
+                    tempTitle = nodeExam.replace(/Exam/g, "Alert");
+                }
+
+                title = "Sensor Reading " + nodeGrade + " on " + tempTitle;
                 return title;
             });
 
@@ -791,22 +799,28 @@ function hierJS() {
 
     function filterParallelData(nodeExam, nodeGrade) {
         let pcDataRaw = []
+        let examToInput = nodeExam;
+        if (examToInput === "Final Exam") {
+            examToInput = ' '.concat(examToInput);;
+        }
+        console.log(rawData)
         for (const student of Object.entries(rawData)) {
-            if (!student[1][nodeExam]) {
+            if (!student[1][examToInput]) {
                 continue;
             }
-            let grade = gradeScale(student[1][nodeExam]);
-            let level = assessGradeLevelMap[nodeExam][grade]["level"];
+            console.log('here')
+            let grade = gradeScale(student[1][examToInput]);
+            let level = assessGradeLevelMap[examToInput][grade]["level"];
             if (level === 1) {
-                grade = specificLetterScale(grade, student[1][nodeExam]);
+                grade = specificLetterScale(grade, student[1][examToInput]);
             }
             if (level === 2) {
-                grade = specificLetterScale(grade, student[1][nodeExam]);
-                if (grade.length === 1 && assessGradeLevelMap[nodeExam][grade]["def"] === 2) {
-                    grade = student[1][nodeExam];
+                grade = specificLetterScale(grade, student[1][examToInput]);
+                if (grade.length === 1 && assessGradeLevelMap[examToInput][grade]["def"] === 2) {
+                    grade = student[1][examToInput];
                 }
-                else if (assessGradeLevelMap[nodeExam][grade[0]][grade[grade.length - 1]] === 2) {
-                    grade = student[1][nodeExam];
+                else if (assessGradeLevelMap[examToInput][grade[0]][grade[grade.length - 1]] === 2) {
+                    grade = student[1][examToInput];
                 }
             }
 
@@ -878,6 +892,7 @@ function hierJS() {
     function hoverBehavior(node, flag) {
         console.log(node);
         // let billy = formatParallelData();
+        console.log(node);
         let pcDataRaw = filterParallelData(node.assessment, node.sensorName);
         let pcData = formatParallelData(pcDataRaw);
         const filteredReturn = generateLegendGroups(pcData);
@@ -888,8 +903,6 @@ function hierJS() {
         /* Build colors */
         const colorArray = createColorMap(totalGroups);
 
-
-        pcData = filteredReturn[0];
         if (true) {
             buildLegend(colorArray, sortedArray, node.sensorName, node.assessment);
         }
@@ -1582,63 +1595,6 @@ function hierJS() {
             .on("contextmenu", function (d, i) {
                 d.preventDefault();
                 hierarchSankeyRouter(i, false);
-            })
-            .on("mouseover", function (d, i) {
-                if (!showNodeLabels) {
-                    return;
-                }
-                if (d3.selectAll('.tooltip')._groups[0].length > 1) {
-                    d3.selectAll('.tooltip').each(function (d) {
-                        d3.select(this).transition()
-                            .duration(500)
-                            .style('opacity', 0)
-                            .remove();
-                    });
-                }
-
-                /* Spec one */
-                if (d3.selectAll('.tooltipbig')._groups[0].length > 1) {
-                    d3.selectAll('.tooltipbig').each(function (d) {
-                        d3.select(this).transition()
-                            .duration(500)
-                            .style('opacity', 0)
-                            .remove();
-                    });
-                }
-
-                const percent = getAllStudents(i.assessment, i.value);
-                const childPercentArray = getParentPercentage(i.assessment, i.name, i.value);
-                const htmlString = buildString(childPercentArray, i.value);
-                const childPercent = childPercentArray[0];
-                const parentNode = childPercentArray[1];
-
-                if (isNumber(i.name)) {
-                    divbig.transition()
-                        .duration(400)
-                        .style("opacity", 1.0);
-                    divbig.html(`Node: ${i.assessment} ${i.name} </br>${i.value} students </br> ${htmlString} ${percent} of all students `)
-                        .style("left", (d.pageX) + "px")
-                        .style("top", (d.pageY - 28) + "px");
-                }
-                else {
-                    div.transition()
-                        .duration(400)
-                        .style("opacity", 1.0);
-                    div.html(`Node: ${i.assessment} ${i.name} </br>${i.value} students </br> ${htmlString} ${percent} of all students `)
-                        .style("left", (d.pageX) + "px")
-                        .style("top", (d.pageY - 28) + "px");
-                }
-            })
-            .on("mouseout", function (d) {
-                if (!showNodeLabels) {
-                    return;
-                }
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-                divbig.transition()
-                    .duration(500)
-                    .style("opacity", 0);
             });
 
         // resets on additional click
@@ -1677,7 +1633,13 @@ function hierJS() {
         graphnode.append("text")
             .style("font-size", "16px")
             .attr("class", "nodeText")
-            .attr("x", function (d) { return d.x0 - 30; })
+            .attr("x", function (d) {
+                console.log(d)
+                if (d.sensorName.length > 2) {
+                    return d.x0 - 45;
+                }
+                return d.x0 - 30;
+            })
             .attr("y", function (d) { return (d.y1 + d.y0) / 2; })
             .attr("dy", "0.35em")
             .text(function (d) {
@@ -1774,40 +1736,6 @@ function hierJS() {
             .style("stroke", d => {
                 return getNodeColor(d.source.name);
             })
-            .on("mouseover", function (d, i) {
-
-                if (!showLinkLabels) {
-                    return;
-                }
-
-                d3.selectAll('.tooltipLink').each(function (d) {
-                    d3.select(this).transition()
-                        .duration(500)
-                        .style('opacity', 0)
-                        .remove();
-                });
-                const percent = getAllStudents(i.target.assessment, i.value);
-                const childPercentArray = getParentPercentage(i.source.id, i.source.name, i.target.id, i.target.name);
-                const htmlString = buildString(childPercentArray, i.value);
-                div.transition()
-                    .duration(500)
-                    .ease(d3.easeCircle)
-                    .style("opacity", 1.0);
-                div.html(`Link: ${i.source.name[0]} to ${i.target.name[0]} </br> ${i.value} students </br> ${htmlString} ${percent} of all students `)
-                    .style("left", (d.pageX) + "px")
-                    .style("top", (d.pageY - 28) + "px");
-
-            })
-            .on("mouseout", function (d) {
-
-                if (!showLinkLabels) {
-                    return;
-                }
-
-                div.transition()
-                    .duration(400)
-                    .style("opacity", 0);
-            });
 
     }
 
@@ -2120,28 +2048,28 @@ function hierJS() {
             .attr("y", height + 25)
             .attr("x", examGraphLabel[0])
             .style("text-anchor", "middle")
-            .text("Exam 1");
+            .text("Alert 1");
 
         svg.append("text")
             .attr("class", "axis-label")
             .attr("y", height + 25)
             .attr("x", examGraphLabel[1])
             .style("text-anchor", "middle")
-            .text("Exam 2");
+            .text("Alert 2");
 
         svg.append("text")
             .attr("class", "axis-label")
             .attr("y", height + 25)
             .attr("x", examGraphLabel[2])
             .style("text-anchor", "middle")
-            .text("Exam 3");
+            .text("Alert 3");
 
         svg.append("text")
             .attr("class", "axis-label")
             .attr("y", height + 25)
             .attr("x", examGraphLabel[3])
             .style("text-anchor", "middle")
-            .text("Final Exam");
+            .text("Alert 4");
     }
 
 

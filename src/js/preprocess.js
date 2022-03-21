@@ -108,6 +108,20 @@ function specificLetterScaleLocal(letter, number) {
     }
 }
 
+/** Returns specific tree */
+function specificLetterScaleTree(letter, number) {
+    const secondDigit = parseInt(number.toString()[number.toString().length - 1]);
+    if (secondDigit >= 7) {
+        return letter.concat("+");
+    }
+    else if (secondDigit >= 4) {
+        return letter.concat("#")
+    }
+    else {
+        return letter.concat("-");
+    }
+}
+
 let gradeCoordinatesMap = new Map([
     ['A', 'A'],
     ['B', 'B'],
@@ -242,8 +256,11 @@ function gradeCoordinatesMapFunction2(grade) {
     }
     else {
         let letter = gradeScaleLocal(grade);
-        let specLetter = specificLetterScaleLocal(letter, grade);
+        console.log(letter)
+        let specLetter = specificLetterScaleTree(letter, grade);
+        console.log(specLetter)
         let gradeMap = gradeCoordinatesMap2.get(specLetter);
+        console.log(gradeMap)
         return gradeMap + '0' + grade.toString()[1];
     }
 }
@@ -312,3 +329,16 @@ function inflowSensorSort(a, b) {
 
     return a.name > b.name;
 };
+
+
+function normalizeNum(num) {
+    console.log(num)
+    num = parseInt(num)
+    if (num < 4) {
+        return num.toString()
+    }
+    if (num < 7) {
+        return num.toString() - 4
+    }
+    return num.toString() - 7;
+}

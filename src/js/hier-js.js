@@ -282,11 +282,17 @@ function hierJS() {
             let assessment = Object.keys(value)[0];
             let stringToInput = gradeCoordinateHelper(name, assessment, assessGradeLevelMap);
             let nodeName = gradeCoordinatesMapFunction(stringToInput);
+            let normalizedName = nodeName;
+            if (isNumber(normalizedName.slice(-1))) {
+                normalizedName = nodeName.slice(0, -1) + normalizeNum(nodeName.slice(-1))
+            }
+
             nodes.push({
                 "id": parseInt(key),
                 "name": Object.values(value)[0],
                 "assessment": Object.keys(value)[0],
                 'sensorName': nodeName,
+                "normalizedName": normalizedName,
                 "value": 0,
                 "vale": 0,
             });
@@ -398,9 +404,7 @@ function hierJS() {
                 }
             }
         }
-        console.log(output);
         output3 = JSON.parse(JSON.stringify(output));
-        console.log(output3);
         return output;
     }
 
@@ -435,17 +439,17 @@ function hierJS() {
         // console.log(group);
         d3.selectAll(".link").each(function (d) {
 
-            if (d.source.assessment == 'Exam 1' && (d.source.sensorName != group[0] || d.target.sensorName != group[1])) {
+            if (d.source.assessment == 'Exam 1' && (d.source.normalizedName != group[0] || d.target.normalizedName != group[1])) {
                 d3.select(this).transition()
                     .style('stroke-opacity', 0.2);
                 return;
             }
-            if (d.source.assessment == 'Exam 2' && (d.source.sensorName != group[1] || d.target.sensorName != group[2])) {
+            if (d.source.assessment == 'Exam 2' && (d.source.normalizedName != group[1] || d.target.normalizedName != group[2])) {
                 d3.select(this).transition()
                     .style('stroke-opacity', 0.2);
                 return;
             }
-            if (d.source.assessment == 'Exam 3' && (d.source.sensorName != group[2] || d.target.sensorName != group[3])) {
+            if (d.source.assessment == 'Exam 3' && (d.source.normalizedName != group[2] || d.target.normalizedName != group[3])) {
                 d3.select(this).transition()
                     .style('stroke-opacity', 0.2);
                 return;
@@ -510,7 +514,6 @@ function hierJS() {
     }
 
     function buildLegend(colorArray, rankedArray, nodeGrade, nodeExam) {
-        console.log(rankedArray);
         const barData = buildBarGraphData(rankedArray, colorArray);
         const axisData = buildAxisData(barData);
         // const numBars = rankedArray.length < 8 ? rankedArray.length : 8;
@@ -768,7 +771,11 @@ function hierJS() {
         }
         let stringToInput = gradeCoordinateHelper(grade, assessment, assessGradeLevelMap);
         let nodeName = gradeCoordinatesMapFunction(stringToInput);
-        return nodeName;
+        let normalizedName = nodeName;
+        if (isNumber(normalizedName.slice(-1))) {
+            normalizedName = nodeName.slice(0, -1) + normalizeNum(nodeName.slice(-1))
+        }
+        return normalizedName;
     }
 
     /**
@@ -890,9 +897,6 @@ function hierJS() {
     }
 
     function hoverBehavior(node, flag) {
-        console.log(node);
-        // let billy = formatParallelData();
-        console.log(node);
         let pcDataRaw = filterParallelData(node.assessment, node.sensorName);
         let pcData = formatParallelData(pcDataRaw);
         const filteredReturn = generateLegendGroups(pcData);
@@ -904,7 +908,7 @@ function hierJS() {
         const colorArray = createColorMap(totalGroups);
 
         if (true) {
-            buildLegend(colorArray, sortedArray, node.sensorName, node.assessment);
+            buildLegend(colorArray, sortedArray, node.normalizedName, node.assessment);
         }
         return;
     }
@@ -1634,7 +1638,6 @@ function hierJS() {
             .style("font-size", "16px")
             .attr("class", "nodeText")
             .attr("x", function (d) {
-                console.log(d)
                 if (d.sensorName.length > 2) {
                     return d.x0 - 45;
                 }
@@ -1646,7 +1649,7 @@ function hierJS() {
                 if (d.value == 0) {
                     return "";
                 }
-                return d.sensorName;
+                return d.normalizedName
             });
 
     }

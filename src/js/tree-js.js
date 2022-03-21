@@ -351,7 +351,9 @@ function treeJS() {
             let name = Object.values(value)[0];
             let assessment = Object.keys(value)[0];
             let stringToInput = gradeCoordinateHelper(name, assessment, assessGradeLevelMap, true, true);
+            console.log(stringToInput)
             let nodeName = gradeCoordinatesMapFunction2(stringToInput);
+            console.log(nodeName)
             nodes.push({
                 "id": parseInt(key),
                 "name": Object.values(value)[0],
@@ -867,9 +869,14 @@ function treeJS() {
                 grade = otherGrade;
             }
         }
-        let stringToInput = gradeCoordinateHelper(grade, assessment.trim(), assessGradeLevelMap, true, true);
+        let stringToInput = gradeCoordinateHelper(grade, assessment.trim(), assessGradeLevelMap, true, false);
         let nodeName = gradeCoordinatesMapFunction(stringToInput);
-        return nodeName;
+        let normalizedName = nodeName;
+        // console.log(normalizedName)
+        if (isNumber(normalizedName.slice(-1))) {
+            normalizedName = nodeName.slice(0, -1) + normalizeNum(nodeName.slice(-1))
+        }
+        return normalizedName;
     }
 
     /**
@@ -899,6 +906,7 @@ function treeJS() {
 
 
     function filterParallelData(nodeExam, nodeGrade) {
+        console.log(nodeExam, nodeGrade)
         let pcDataRaw = []
         let examToInput = nodeExam;
         if (examToInput === "Final Exam") {
@@ -922,7 +930,7 @@ function treeJS() {
                     grade = student[1][examToInput];
                 }
             }
-            let stringToInput = gradeCoordinateHelper(grade, nodeExam, assessGradeLevelMap, true, true);
+            let stringToInput = gradeCoordinateHelper(grade, nodeExam, assessGradeLevelMap, true, false);
             let nodeName = gradeCoordinatesMapFunction(stringToInput);
             if (nodeName === nodeGrade) {
                 pcDataRaw.push(student[1]);
@@ -961,6 +969,7 @@ function treeJS() {
             }
         }
         groupsList = [...groupsMap.keys()];
+        console.log(groupsList)
 
         /* Rank the groups */
         let rankedArray = [];
@@ -988,7 +997,6 @@ function treeJS() {
     }
 
     function hoverBehavior(node, flag) {
-        console.log(node);
         // Check if node is broken down....
         if (node.sourceLinks.length > 0 && node.sourceLinks[0].target.assessment === node.assessment) {
             return;
@@ -997,8 +1005,11 @@ function treeJS() {
 
         // let billy = formatParallelData();
         let pcDataRaw = filterParallelData(node.assessment, node.sensorName);
+        console.log(pcDataRaw)
         let pcData = formatParallelData(pcDataRaw);
+        console.log(pcDataRaw)
         const filteredReturn = generateLegendGroups(pcData);
+        console.log(filteredReturn)
         const filteredData = filteredReturn[0];
         const totalGroups = filteredReturn[1];
         const sortedArray = filteredReturn[2];
@@ -1754,6 +1765,12 @@ function treeJS() {
             .text(function (d) {
                 if (d.value == 0) {
                     return "";
+                }
+                if (isNaN(d.name)) {
+                    return gradeCoordinatesMap1.get(d.name);
+                }
+                else {
+                    return '0' + normalizeNum(d.name.toString()[1]);
                 }
                 return gradeCoordinatesMapFunction1(d.name);
             });

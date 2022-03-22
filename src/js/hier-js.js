@@ -10,7 +10,7 @@ function hierJS() {
     */
 
     const margin = { top: 50, right: 50, bottom: 10, left: 10 }
-    const width = 890 - margin.left - margin.right; //890;
+    const width = 960 - margin.left - margin.right; //890;
     const height = 740 - margin.top - margin.bottom; //740;
     const legendWidth = 600;
     const legendHeight = 900;
@@ -427,6 +427,13 @@ function hierJS() {
             d3.select(this).transition()
                 .style('stroke-opacity', 0.4);
         });
+
+        d3.selectAll(".node").each(function (d) {
+            // console.log(d);
+            d3.select(this).transition()
+                .style('opacity', 1.0)
+                .style('stroke-opacity', 0.8);
+        });
     }
 
     /**
@@ -435,8 +442,34 @@ function hierJS() {
     function highlightGroup(group) {
         group = group.split("\u2192");
 
+        /* Populate nodes groups */
+        const nodesGroups = {}
+        for ([index, assessment] of assessments.entries()) {
+            nodesGroups[assessment.trim()] = []
+        }
 
-        // console.log(group);
+        const newGroups = []
+        const newGroupsMap = {};
+        let examIndex = 0;
+        /* Add Exam Annotation */
+        for (let i = 0; i < group.length; i++) {
+            let currSensor = group[i];
+            let assessment = assessments[examIndex];
+
+            if (currSensor.length < 4) {
+                nodesGroups[assessment.trim()].push(currSensor);
+                examIndex += 1
+            }
+            else {
+                let nextSensor = currSensor.slice(0, 2);
+                let normalizedNum = currSensor.slice(-1);
+                let rawNum = "0" + unNormalizeNum(currSensor[1], normalizedNum);
+                let numSensor = nextSensor + rawNum;
+                nodesGroups[assessment.trim()].push(numSensor);
+            }
+        }
+
+
         d3.selectAll(".link").each(function (d) {
 
             if (d.source.assessment == 'Exam 1' && (d.source.normalizedName != group[0] || d.target.normalizedName != group[1])) {
@@ -458,6 +491,22 @@ function hierJS() {
 
             d3.select(this).transition()
                 .style('stroke-opacity', 0.8);
+        });
+
+        /* Highlight Nodes */
+        d3.selectAll(".node").each(function (d) {
+            let nodeName = d.sensorName;
+            let nodeExam = d.assessment;
+            if (nodeExam in nodesGroups && nodesGroups[nodeExam].includes(nodeName)) {
+                d3.select(this).transition()
+                    .style('opacity', 1.0)
+                    .style('stroke-opacity', 1.0);
+            }
+            else {
+                d3.select(this).transition()
+                    .style('opacity', 0.5)
+                    .style('stroke-opacity', 0.5);
+            }
         });
     }
 
@@ -751,9 +800,6 @@ function hierJS() {
         }
         if (level === 2) {
             let otherGrade = specificLetterScale(grade, numberGrade);
-            if (assessment === 'Exam 3') {
-                console.log(otherGrade)
-            }
             if (otherGrade.length > 1) {
                 level = assessGradeLevelMap[assessment][grade][otherGrade[1]];
             }
@@ -810,12 +856,10 @@ function hierJS() {
         if (examToInput === "Final Exam") {
             examToInput = ' '.concat(examToInput);;
         }
-        console.log(rawData)
         for (const student of Object.entries(rawData)) {
             if (!student[1][examToInput]) {
                 continue;
             }
-            console.log('here')
             let grade = gradeScale(student[1][examToInput]);
             let level = assessGradeLevelMap[examToInput][grade]["level"];
             if (level === 1) {
@@ -859,9 +903,6 @@ function hierJS() {
                 }
             }
             line['concat'] = allExams;
-            if (allExams === "A→A→A→A→A") {
-                console.log('here');
-            }
             if (groupsMap.has(allExams)) {
                 groupsMap.set(allExams, groupsMap.get(allExams) + 1);
             }
@@ -1329,7 +1370,7 @@ function hierJS() {
             padding = 45;
         }
         sankey = d3.sankey()
-            .size([width, height])
+            .size([width - 70, height])
             .nodeId(d => d.id)
             .nodeWidth(nodeWdt)
             .nodePadding(padding)

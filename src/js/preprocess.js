@@ -332,13 +332,23 @@ function inflowSensorSort(a, b) {
 
 
 function normalizeNum(num) {
-    console.log(num)
     num = parseInt(num)
     if (num < 4) {
         return num.toString()
     }
     if (num < 7) {
-        return num.toString() - 4
+        return (num - 4).toString()
     }
-    return num.toString() - 7;
+    return (num - 7).toString();
+}
+
+function unNormalizeNum(letter, num) {
+    num = parseInt(num)
+    if (letter === "x") {
+        return (num + 7).toString();
+    }
+    if (letter === "y") {
+        return (num + 4).toString()
+    }
+    return num.toString()
 }

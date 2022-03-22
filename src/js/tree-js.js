@@ -10,7 +10,7 @@ function treeJS() {
     */
 
     const margin = { top: 50, right: 50, bottom: 10, left: 10 }
-    const width = 890 - margin.left - margin.right; //890;
+    const width = 960 - margin.left - margin.right; //890;
     const height = 740 - margin.top - margin.bottom; //740;
     const legendWidth = 600;
     const legendHeight = 900;
@@ -351,9 +351,7 @@ function treeJS() {
             let name = Object.values(value)[0];
             let assessment = Object.keys(value)[0];
             let stringToInput = gradeCoordinateHelper(name, assessment, assessGradeLevelMap, true, true);
-            console.log(stringToInput)
             let nodeName = gradeCoordinatesMapFunction2(stringToInput);
-            console.log(nodeName)
             nodes.push({
                 "id": parseInt(key),
                 "name": Object.values(value)[0],
@@ -526,6 +524,12 @@ function treeJS() {
             d3.select(this).transition()
                 .style('stroke-opacity', 0.4);
         });
+        d3.selectAll(".node").each(function (d) {
+            // console.log(d);
+            d3.select(this).transition()
+                .style('opacity', 1.0)
+                .style('stroke-opacity', 0.8);
+        });
     }
 
     /**
@@ -534,31 +538,108 @@ function treeJS() {
     function highlightGroup(group) {
         group = group.split("\u2192");
 
+        /* Populate nodes groups */
+        const nodesGroups = {}
+        for ([index, assessment] of assessments.entries()) {
+            nodesGroups[assessment.trim()] = []
+        }
 
-        // console.log(group);
+        const newGroups = []
+        const newGroupsMap = {};
+        let examIndex = 0;
+        let nodeCounter = 0
+        /* Add Exam Annotation */
+        for (let i = 0; i < group.length; i++) {
+            let currSensor = group[i];
+            let assessment = assessments[examIndex];
+
+            if (currSensor.length === 1) {
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroups.push(currSensor);
+                nodesGroups[assessment.trim()].push(currSensor);
+                examIndex += 1
+            }
+            else if (currSensor.length == 2) {
+                let nextSensor = currSensor;
+                currSensor = currSensor[0] + "y";
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroups.push(currSensor);
+                newGroups.push(nextSensor);
+                nodesGroups[assessment.trim()].push(currSensor);
+                nodesGroups[assessment.trim()].push(nextSensor);
+                examIndex += 1
+            }
+            else {
+                let nextSensor = currSensor.slice(0, 2);
+                let normalizedNum = currSensor.slice(-1);
+                let rawNum = "0" + unNormalizeNum(currSensor[1], normalizedNum);
+                let numSensor = nextSensor + rawNum;
+                currSensor = currSensor[0] + "y";
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroups.push(currSensor);
+                newGroups.push(nextSensor);
+                newGroups.push(numSensor);
+                nodesGroups[assessment.trim()].push(currSensor);
+                nodesGroups[assessment.trim()].push(nextSensor);
+                nodesGroups[assessment.trim()].push(numSensor);
+                examIndex += 1
+            }
+        }
+
+        /* Construct White List */
+        const groupLinks = {}
+        for (let i = 0; i < newGroups.length - 1; i++) {
+            let sourceNode = newGroups[i];
+            let targetNode = newGroups[i + 1];
+            let sourceExam = newGroupsMap[i];
+            let targetExam = newGroupsMap[i + 1];
+            let linkKey = sourceExam + targetExam.trim();
+            let linkValue = sourceNode + targetNode;
+            if (!(linkKey in groupLinks)) {
+                groupLinks[linkKey] = [];
+            }
+            groupLinks[linkKey].push(linkValue)
+        }
+
+
+        /* Highlight Links */
         d3.selectAll(".link").each(function (d) {
-
-            if (d.source.assessment == 'Exam 1' && (d.source.sensorName != group[0] || d.target.sensorName != group[1])) {
+            let sourceNode = d.source.sensorName;
+            let targetNode = d.target.sensorName;
+            let sourceExam = d.source.assessment;
+            let targetExam = d.target.assessment;
+            let linkKey = sourceExam + targetExam;
+            let linkValue = sourceNode + targetNode;
+            if (linkKey in groupLinks && groupLinks[linkKey].includes(linkValue)) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.8);
+            }
+            else {
                 d3.select(this).transition()
                     .style('stroke-opacity', 0.2);
-                return;
             }
-            if (d.source.assessment == 'Exam 2' && (d.source.sensorName != group[1] || d.target.sensorName != group[2])) {
-                d3.select(this).transition()
-                    .style('stroke-opacity', 0.2);
-                return;
-            }
-            if (d.source.assessment == 'Exam 3' && (d.source.sensorName != group[2] || d.target.sensorName != group[3])) {
-                d3.select(this).transition()
-                    .style('stroke-opacity', 0.2);
-                return;
-            }
+        });
 
-
-            d3.select(this).transition()
-                .style('stroke-opacity', 0.8);
+        /* Highlight Nodes */
+        d3.selectAll(".node").each(function (d) {
+            let nodeName = d.sensorName;
+            let nodeExam = d.assessment;
+            if (nodeExam in nodesGroups && nodesGroups[nodeExam].includes(nodeName)) {
+                d3.select(this).transition()
+                    .style('opacity', 1.0)
+                    .style('stroke-opacity', 1.0);
+            }
+            else {
+                d3.select(this).transition()
+                    .style('opacity', 0.5)
+                    .style('stroke-opacity', 0.5);
+            }
         });
     }
+
 
     /**
      * Function to remove legend
@@ -613,7 +694,6 @@ function treeJS() {
     }
 
     function buildLegend(colorArray, rankedArray, nodeGrade, nodeExam) {
-        console.log(rankedArray);
         const barData = buildBarGraphData(rankedArray, colorArray);
         const axisData = buildAxisData(barData);
         // const numBars = rankedArray.length < 8 ? rankedArray.length : 8;
@@ -851,9 +931,6 @@ function treeJS() {
         }
         if (level === 2) {
             let otherGrade = specificLetterScale(grade, numberGrade);
-            if (assessment === 'Exam 3') {
-                console.log(otherGrade)
-            }
             if (otherGrade.length > 1) {
                 level = assessGradeLevelMap[assessment.trim()][grade][otherGrade[1]];
             }
@@ -906,7 +983,6 @@ function treeJS() {
 
 
     function filterParallelData(nodeExam, nodeGrade) {
-        console.log(nodeExam, nodeGrade)
         let pcDataRaw = []
         let examToInput = nodeExam;
         if (examToInput === "Final Exam") {
@@ -958,9 +1034,6 @@ function treeJS() {
                 }
             }
             line['concat'] = allExams;
-            if (allExams === "A→A→A→A→A") {
-                console.log('here');
-            }
             if (groupsMap.has(allExams)) {
                 groupsMap.set(allExams, groupsMap.get(allExams) + 1);
             }
@@ -969,7 +1042,6 @@ function treeJS() {
             }
         }
         groupsList = [...groupsMap.keys()];
-        console.log(groupsList)
 
         /* Rank the groups */
         let rankedArray = [];
@@ -1005,11 +1077,8 @@ function treeJS() {
 
         // let billy = formatParallelData();
         let pcDataRaw = filterParallelData(node.assessment, node.sensorName);
-        console.log(pcDataRaw)
         let pcData = formatParallelData(pcDataRaw);
-        console.log(pcDataRaw)
         const filteredReturn = generateLegendGroups(pcData);
-        console.log(filteredReturn)
         const filteredData = filteredReturn[0];
         const totalGroups = filteredReturn[1];
         const sortedArray = filteredReturn[2];
@@ -1453,7 +1522,7 @@ function treeJS() {
         if (sankeyData.nodes.length > 20) {
             /* Sets up svg */
             sankey = d3.sankey()
-                .size([width + widthAdder * 100, height])
+                .size([width + widthAdder * 100 - 70, height])
                 .nodeId(d => d.id)
                 .nodeWidth(nodeWdt)
                 .nodePadding(padding)

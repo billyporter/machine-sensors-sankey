@@ -46,6 +46,10 @@ body {
     width: 300px;
 }
 
+.node {
+    stroke-opacity: 0.8;
+}
+
 .graphic svg {
     /* display: block; */
     /* margin-top: 50px; */

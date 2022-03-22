@@ -365,6 +365,12 @@ function breakdownJS() {
             d3.select(this).transition()
                 .style('stroke-opacity', 0.4);
         });
+        d3.selectAll(".node").each(function (d) {
+            // console.log(d);
+            d3.select(this).transition()
+                .style('opacity', 1.0)
+                .style('stroke-opacity', 0.8);
+        });
     }
 
     /**
@@ -372,7 +378,24 @@ function breakdownJS() {
      */
     function highlightGroup(group) {
         group = group.split("\u2192");
-        console.log(group);
+
+        /* Populate nodes groups */
+        const nodesGroups = {}
+        for ([index, assessment] of assessments.entries()) {
+            nodesGroups[assessment.trim()] = []
+        }
+
+        const newGroups = []
+        const newGroupsMap = {};
+        let examIndex = 0;
+        /* Add Exam Annotation */
+        for (let i = 0; i < group.length; i++) {
+            let currSensor = group[i];
+            let assessment = assessments[examIndex];
+
+            nodesGroups[assessment.trim()].push(currSensor);
+            examIndex += 1
+        }
 
         // console.log(group);
         d3.selectAll(".link").each(function (d) {
@@ -396,6 +419,22 @@ function breakdownJS() {
 
             d3.select(this).transition()
                 .style('stroke-opacity', 0.8);
+        });
+
+        /* Highlight Nodes */
+        d3.selectAll(".node").each(function (d) {
+            let nodeName = d.sensorName;
+            let nodeExam = d.assessment;
+            if (nodeExam in nodesGroups && nodesGroups[nodeExam].includes(nodeName)) {
+                d3.select(this).transition()
+                    .style('opacity', 1.0)
+                    .style('stroke-opacity', 1.0);
+            }
+            else {
+                d3.select(this).transition()
+                    .style('opacity', 0.5)
+                    .style('stroke-opacity', 0.5);
+            }
         });
     }
 
@@ -770,9 +809,6 @@ function breakdownJS() {
                 }
             }
             line['concat'] = allExams;
-            if (allExams === "A→A→A→A→A") {
-                console.log('here');
-            }
             if (groupsMap.has(allExams)) {
                 groupsMap.set(allExams, groupsMap.get(allExams) + 1);
             }
@@ -819,9 +855,6 @@ function breakdownJS() {
         /* Build colors */
         const colorArray = createColorMap(totalGroups);
 
-        console.log(sortedArray);
-        console.log(node.sensorName);
-        console.log(node)
         pcData = filteredReturn[0];
         if (true) {
             buildLegend(colorArray, sortedArray, node.sensorName, node.assessment);

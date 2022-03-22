@@ -505,6 +505,7 @@ function treeJS() {
                 }
             }
         }
+        console.log(output)
         return output;
     }
 
@@ -534,31 +535,86 @@ function treeJS() {
     function highlightGroup(group) {
         group = group.split("\u2192");
 
+        const newGroups = []
+        const newGroupsMap = {};
+        let examIndex = 0;
+        let nodeCounter = 0
+        /* Add Exam Annotation */
+        for (let i = 0; i < group.length; i++) {
+            let currSensor = group[i];
+            let assessment = assessments[examIndex];
+
+            if (currSensor.length === 1) {
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroups.push(currSensor);
+                examIndex += 1
+            }
+            else if (currSensor.length == 2) {
+                let nextSensor = currSensor;
+                currSensor = currSensor[0] + "y";
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroups.push(currSensor);
+                newGroups.push(nextSensor);
+                examIndex += 1
+            }
+            else {
+                let nextSensor = currSensor.slice(0, 2);
+                let normalizedNum = currSensor.slice(-1);
+                let rawNum = "0" + unNormalizeNum(currSensor[1], normalizedNum);
+                let numSensor = nextSensor + rawNum;
+                currSensor = currSensor[0] + "y";
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroupsMap[nodeCounter++] = assessment;
+                newGroups.push(currSensor);
+                newGroups.push(nextSensor);
+                newGroups.push(numSensor);
+                examIndex += 1
+            }
+        }
+        console.log(newGroupsMap);
+
+        /* Construct White List */
+        const groupLinks = {}
+        for (let i = 0; i < newGroups.length - 1; i++) {
+            let sourceNode = newGroups[i];
+            let targetNode = newGroups[i + 1];
+            let sourceExam = newGroupsMap[i];
+            let targetExam = newGroupsMap[i + 1];
+            let linkKey = sourceExam + targetExam.trim();
+            let linkValue = sourceNode + targetNode;
+            if (!(linkKey in groupLinks)) {
+                groupLinks[linkKey] = [];
+            }
+            groupLinks[linkKey].push(linkValue)
+        }
+        console.log(groupLinks);
+
 
         // console.log(group);
         d3.selectAll(".link").each(function (d) {
-
-            if (d.source.assessment == 'Exam 1' && (d.source.sensorName != group[0] || d.target.sensorName != group[1])) {
+            let sourceNode = d.source.sensorName;
+            let targetNode = d.target.sensorName;
+            let sourceExam = d.source.assessment;
+            let targetExam = d.target.assessment;
+            let linkKey = sourceExam + targetExam;
+            let linkValue = sourceNode + targetNode;
+            console.log(linkKey);
+            console.log(linkValue);
+            // console.log(linkKey in groupLinks);
+            // console.log(linkValue in groupLinks[linkKey]);
+            if (linkKey in groupLinks && groupLinks[linkKey].includes(linkValue)) {
+                d3.select(this).transition()
+                    .style('stroke-opacity', 0.8);
+            }
+            else {
                 d3.select(this).transition()
                     .style('stroke-opacity', 0.2);
-                return;
             }
-            if (d.source.assessment == 'Exam 2' && (d.source.sensorName != group[1] || d.target.sensorName != group[2])) {
-                d3.select(this).transition()
-                    .style('stroke-opacity', 0.2);
-                return;
-            }
-            if (d.source.assessment == 'Exam 3' && (d.source.sensorName != group[2] || d.target.sensorName != group[3])) {
-                d3.select(this).transition()
-                    .style('stroke-opacity', 0.2);
-                return;
-            }
-
-
-            d3.select(this).transition()
-                .style('stroke-opacity', 0.8);
         });
     }
+
 
     /**
      * Function to remove legend

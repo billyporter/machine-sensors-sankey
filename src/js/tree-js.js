@@ -10,7 +10,7 @@ function treeJS() {
     */
 
     const margin = { top: 50, right: 50, bottom: 10, left: 10 }
-    const width = 890 - margin.left - margin.right; //890;
+    const width = 960 - margin.left - margin.right; //890;
     const height = 740 - margin.top - margin.bottom; //740;
     const legendWidth = 600;
     const legendHeight = 900;
@@ -505,7 +505,6 @@ function treeJS() {
                 }
             }
         }
-        console.log(output)
         return output;
     }
 
@@ -1509,7 +1508,7 @@ function treeJS() {
         if (sankeyData.nodes.length > 20) {
             /* Sets up svg */
             sankey = d3.sankey()
-                .size([width + widthAdder * 100, height])
+                .size([width + widthAdder * 100 - 70, height])
                 .nodeId(d => d.id)
                 .nodeWidth(nodeWdt)
                 .nodePadding(padding)

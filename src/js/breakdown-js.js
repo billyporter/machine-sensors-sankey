@@ -613,7 +613,7 @@ function breakdownJS() {
             .style("text-anchor", "middle")
             .style("font-weight", "600")
             .style("font-size", "14px")
-            .text("Students");
+            .text("Count");
 
         /* title */
         svg.append("text")
